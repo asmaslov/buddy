@@ -1,4 +1,6 @@
 #include "debugport.h"
+#include "assert.h"
+#include "trace.h"
 //#include "twid.h"
 
 #include "lcd.h"
@@ -10,22 +12,19 @@
 
 void Delay (unsigned long a) { while (--a != 0); }
 
-DebugPort *debug;
-
 int main(void)
 {   
-  printf("This string is printf() inside IAR\n\r");
-  printf("This string is printf() inside IAR\n\r");
+  DebugPort *debug = new DebugPort();
+  debug->printf("Debug port test string\n\r");
+
+  printf("Trace level %d\n\r", TRACE_LEVEL); 
+  printf("Message %d\n\r", MESSAGE); 
+
+  TRACE_DEBUG("Main program start\n\r");
+  TRACE_DEBUG("-- Compiled: %s %s --\n\r", __DATE__, __TIME__);
+  TRACE_INFO("Firmware version 0.0.1 unstable\n\r");
   
   //cout << "This string is cout << inside IAR";
-
-
-  debug = new DebugPort();
-  debug->printf("This string is printf() to DBGU\n\r");
-  debug->printf("This string is printf() to DBGU\n\r");
-  
-  
-  printf("-- Compiled: %s %s --\n\r", __DATE__, __TIME__);
   
   //UTIL_WaitTimeInMs(BOARD_MCK, 1000);
   //UTIL_WaitTimeInUs(BOARD_MCK, 1000);
@@ -51,5 +50,5 @@ int main(void)
   //initTWID();
   
   // TODO: Make a nice standby mode instead of stupid while(1)
-
+  while(1);
 }

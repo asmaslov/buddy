@@ -1221,8 +1221,8 @@
         </option>
         <option>
           <name>CCIncludePath2</name>
-          <state>$PROJ_DIR$\boards\sam7-ex256</state>
           <state>$PROJ_DIR$\</state>
+          <state>$PROJ_DIR$\boards\sam7-ex256</state>
           <state>$PROJ_DIR$\periphery</state>
           <state>$PROJ_DIR$\drivers</state>
         </option>

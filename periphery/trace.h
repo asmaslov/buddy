@@ -10,17 +10,23 @@
 #define TRACE_LEVEL_FATAL    1
 #define TRACE_LEVEL_NO_TRACE 0
 
-// By default, all traces are output except the debug one.
-#ifndef TRACE_LEVEL
-  #define TRACE_LEVEL TRACE_LEVEL_INFO
+#if defined(TRACE_LEVEL)
+  #define MESSAGE 1
+#else
+  #define MESSAGE 0
 #endif
 
+// By default, all traces are output except the debug one.
+/*#if !defined(TRACE_LEVEL)
+  #define TRACE_LEVEL TRACE_LEVEL_INFO
+#endif*/
+
 // By default, trace level is static (not dynamic)
-#ifndef DYN_TRACES
+#if !defined(DYN_TRACES)
   #define DYN_TRACES 0
 #endif
 
-#ifdef NOTRACE
+#if defined(NOTRACE)
   #error "Error: NOTRACE has to be not defined !"
 #endif
 

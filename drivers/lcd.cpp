@@ -75,7 +75,6 @@ void WriteSpiData(unsigned int data)
   l_pSpi->SPI_TDR = data;
 }
 
-
 void Backlight(unsigned char state)
 {
   if(state == BKLGHT_LCD_ON)
