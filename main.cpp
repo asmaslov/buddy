@@ -14,16 +14,13 @@ void Delay (unsigned long a) { while (--a != 0); }
 
 int main(void)
 {   
+  TRACE_INFO("Firmware version 0.0.1 unstable\n\r");
+  TRACE_DEBUG("Compiled: %s %s \n\r", __DATE__, __TIME__);
+  TRACE_DEBUG("Main program start\n\r");
+  
   DebugPort *debug = new DebugPort();
   debug->printf("Debug port test string\n\r");
 
-  printf("Trace level %d\n\r", TRACE_LEVEL); 
-  printf("Message %d\n\r", MESSAGE); 
-
-  TRACE_DEBUG("Main program start\n\r");
-  TRACE_DEBUG("-- Compiled: %s %s --\n\r", __DATE__, __TIME__);
-  TRACE_INFO("Firmware version 0.0.1 unstable\n\r");
-  
   //cout << "This string is cout << inside IAR";
   
   //UTIL_WaitTimeInMs(BOARD_MCK, 1000);

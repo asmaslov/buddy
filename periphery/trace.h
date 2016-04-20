@@ -10,16 +10,10 @@
 #define TRACE_LEVEL_FATAL    1
 #define TRACE_LEVEL_NO_TRACE 0
 
-#if defined(TRACE_LEVEL)
-  #define MESSAGE 1
-#else
-  #define MESSAGE 0
-#endif
-
 // By default, all traces are output except the debug one.
-/*#if !defined(TRACE_LEVEL)
+#if !defined(TRACE_LEVEL)
   #define TRACE_LEVEL TRACE_LEVEL_INFO
-#endif*/
+#endif
 
 // By default, trace level is static (not dynamic)
 #if !defined(DYN_TRACES)
