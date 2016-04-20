@@ -1,2 +1,4 @@
 syntax: glob
 output/*
+settings/*
+*.dep
