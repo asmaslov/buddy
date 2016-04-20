@@ -63,10 +63,8 @@ void LCDWrite130x130bmp(void);
 void Backlight(unsigned char state);
 
 void WriteSpiCommand(unsigned int data);
+
 void WriteSpiData(unsigned int data);
-
-
-
 
 void SetContrast(unsigned char contrast);
 

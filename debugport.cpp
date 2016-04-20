@@ -1,4 +1,4 @@
-#include "debug.h"
+#include "debugport.h"
 #include "dbgu.h"
 #include "pio.h"
 #include "assert.h"
@@ -6,27 +6,33 @@
 #include <iostream>
 #include <stdarg.h>
 
-// TODO: Make a nice class with DBGU_Init() in constructor
-Debug::Debug()
+DebugPort::DebugPort()
 {
-  PIO_Configure(DBGU_pins, PIO_LISTSIZE(DBGU_pins));
   TRACE_CONFIGURE(DBGU_STANDARD, 115200, BOARD_MCK);
 }
 
-Debug::~Debug()
+DebugPort::~DebugPort()
 {
 
 }
 
-void Debug::printf(char *str, ...)
+void DebugPort::printf(char *str, ...)
 {
   va_list arg;
   va_start(arg, str);
   char buffer[255];
-  //ZeroMemory(&m_lpcBuffer,sizeof(m_lpcBuffer));
+  char i = 0;
   memset(&buffer, 0, sizeof(buffer));
   vsprintf(buffer, str, arg);
   va_end(arg);
-  //CharToOem( m_lpcBuffer, m_lpcBuffer);
-  printf("%s\n", buffer);
+  while(buffer[i] != NULL)
+  {
+    DBGU_PutChar(buffer[i]);
+    i++;
+  }
+}
+
+void DebugPort::putchar(char c)
+{
+  DBGU_PutChar(c);
 }

@@ -1,7 +1,6 @@
 #ifndef ASSERT_H
 #define ASSERT_H
 
-#include "stdio.h"
 #include "trace.h"
 
 #ifdef NOASSERT

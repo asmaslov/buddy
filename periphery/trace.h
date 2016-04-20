@@ -1,10 +1,7 @@
 #ifndef TRACE_H
 #define TRACE_H
 
-#include "board.h"
-#include "dbgu.h"
-#include "pio.h"
-#include "stdio.h"
+#include <stdio.h>
 
 #define TRACE_LEVEL_DEBUG    5
 #define TRACE_LEVEL_INFO     4

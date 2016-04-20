@@ -39,7 +39,7 @@ unsigned char DBGU_GetChar(void)
 }
 
 #ifndef NOFPUT
-  #include "stdio.h"
+  #include <stdio.h>
 
   signed int fputc(signed int c, FILE *pStream)
   {

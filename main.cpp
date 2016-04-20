@@ -1,20 +1,28 @@
-#include "debug.h"
-#include "twid.h"
+#include "debugport.h"
+//#include "twid.h"
 
 #include "lcd.h"
 //#include "usartd.h"
-#include "delay.h"
+//#include "delay.h"
 
 #include <stdio.h>
+//#include <iostream>
 
 void Delay (unsigned long a) { while (--a != 0); }
 
-Debug *debug;
+DebugPort *debug;
 
 int main(void)
 {   
-  debug = new Debug();
-  //debug->printf("-- Compiled: %s %s --\n\r", __DATE__, __TIME__);
+  printf("This string is printf() inside IAR\n\r");
+  printf("This string is printf() inside IAR\n\r");
+  
+  //cout << "This string is cout << inside IAR";
+
+
+  debug = new DebugPort();
+  debug->printf("This string is printf() to DBGU\n\r");
+  debug->printf("This string is printf() to DBGU\n\r");
   
   
   printf("-- Compiled: %s %s --\n\r", __DATE__, __TIME__);
