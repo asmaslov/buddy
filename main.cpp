@@ -1,14 +1,13 @@
 #include "debugport.h"
-#include "assert.h"
 #include "trace.h"
-//#include "twid.h"
+#include "i2cd.h"
 
 #include "lcd.h"
 //#include "usartd.h"
 //#include "delay.h"
 
 #include <stdio.h>
-//#include <iostream>
+#include <iostream>
 
 void Delay (unsigned long a) { while (--a != 0); }
 
@@ -20,8 +19,6 @@ int main(void)
   
   DebugPort *debug = new DebugPort();
   debug->printf("Debug port test string\n\r");
-
-  //cout << "This string is cout << inside IAR";
   
   //UTIL_WaitTimeInMs(BOARD_MCK, 1000);
   //UTIL_WaitTimeInUs(BOARD_MCK, 1000);

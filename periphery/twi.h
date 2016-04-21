@@ -3,20 +3,6 @@
 
 #include "board.h"
 
-// Missing AT91C_TWI_TXRDY definition.
-#ifndef AT91C_TWI_TXRDY
-  #define AT91C_TWI_TXRDY AT91C_TWI_TXRDY_MASTER
-#endif
-
-// Missing AT91C_TWI_TXCOMP definition.
-#ifndef AT91C_TWI_TXCOMP
-  #define AT91C_TWI_TXCOMP  AT91C_TWI_TXCOMP_MASTER
-#endif
-
-#define TWI_STATUS_TXRDY(status) ((status & AT91C_TWI_TXRDY) == AT91C_TWI_TXRDY)
-#define TWI_STATUS_RXRDY(status) ((status & AT91C_TWI_RXRDY) == AT91C_TWI_RXRDY)
-#define TWI_STATUS_TXCOMP(status) ((status & AT91C_TWI_TXCOMP) == AT91C_TWI_TXCOMP)
-
 #ifdef __cplusplus
 extern "C" {
 #endif

@@ -1,4 +1,5 @@
 #include "dbgu.h"
+#include "board.h"
 
 void DBGU_Configure(unsigned int mode,
                     unsigned int baudrate,

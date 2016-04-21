@@ -1,18 +1,10 @@
-#include "pwmd.h"
-#include "board.h"
+#include "pwmcd.h"
 #include "pwmc.h"
-#include "aic.h"
-#include "pio.h"
 
 // PWM Setup
 #define PWM_FREQUENCY 20000
 #define MAX_DUTY_CYCLE 50
 #define MIN_DUTY_CYCLE 0
-
-static const Pin pins[] = {
-  PIN_PWM_LED0,
-  PIN_PWM_LED1,
-};
 
 static void ISR_Pwmc(void)
 {
@@ -42,15 +34,15 @@ static void ISR_Pwmc(void)
         }
       }
       count = 0;
-      PWMC_SetDutyCycle(CHANNEL_PWM_LED0, duty);
-      PWMC_SetDutyCycle(CHANNEL_PWM_LED1, duty);
+      //PWMC_SetDutyCycle(CHANNEL_PWM_LED0, duty);
+      //PWMC_SetDutyCycle(CHANNEL_PWM_LED1, duty);
     }
   }
 }
 
-void initPWMD(void)
+/*void initPWMD(void)
 {
-  PIO_Configure(pins, PIO_LISTSIZE(pins));
+  PIO_Configure(PWMC_pins, PIO_LISTSIZE(PWMC_pins));
   // Enable PWMC peripheral clock
   AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_PWMC;
   // Settings:
@@ -73,4 +65,4 @@ void initPWMD(void)
   // Enable channel #1 and #2
   PWMC_EnableChannel(CHANNEL_PWM_LED0);
   PWMC_EnableChannel(CHANNEL_PWM_LED1);
-}
+}*/

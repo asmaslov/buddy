@@ -1853,29 +1853,41 @@
       <group>
         <name>Headers</name>
         <file>
+          <name>$PROJ_DIR$\drivers\adcd.h</name>
+        </file>
+        <file>
           <name>$PROJ_DIR$\drivers\async.h</name>
+        </file>
+        <file>
+          <name>$PROJ_DIR$\drivers\i2cd.h</name>
         </file>
         <file>
           <name>$PROJ_DIR$\drivers\lcd.h</name>
         </file>
         <file>
-          <name>$PROJ_DIR$\drivers\pwmd.h</name>
+          <name>$PROJ_DIR$\drivers\pwmcd.h</name>
         </file>
         <file>
-          <name>$PROJ_DIR$\drivers\twid.h</name>
+          <name>$PROJ_DIR$\drivers\usartd.h</name>
         </file>
       </group>
       <file>
+        <name>$PROJ_DIR$\drivers\adcd.cpp</name>
+      </file>
+      <file>
         <name>$PROJ_DIR$\drivers\async.cpp</name>
+      </file>
+      <file>
+        <name>$PROJ_DIR$\drivers\i2cd.cpp</name>
       </file>
       <file>
         <name>$PROJ_DIR$\drivers\lcd.cpp</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\drivers\pwmd.cpp</name>
+        <name>$PROJ_DIR$\drivers\pwmcd.cpp</name>
       </file>
       <file>
-        <name>$PROJ_DIR$\drivers\twid.cpp</name>
+        <name>$PROJ_DIR$\drivers\usartd.cpp</name>
       </file>
     </group>
     <group>

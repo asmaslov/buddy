@@ -1,7 +1,6 @@
 #include "debugport.h"
 #include "dbgu.h"
-#include "pio.h"
-#include "assert.h"
+#include "trace.h"
 
 #include <iostream>
 #include <stdarg.h>
