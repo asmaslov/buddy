@@ -16,8 +16,8 @@ class DebugPort
   public:
     DebugPort();
     ~DebugPort();
-    void printf(char *str, ...);
-    void putchar(char c);
+    void dbgprintf(char *str, ...);
+    void dbgputchar(char c);
 };
 
 #endif //#ifndef DEBUGPORT_H

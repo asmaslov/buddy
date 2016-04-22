@@ -15,7 +15,7 @@ DebugPort::~DebugPort()
 
 }
 
-void DebugPort::printf(char *str, ...)
+void DebugPort::dbgprintf(char *str, ...)
 {
   va_list arg;
   va_start(arg, str);
@@ -31,7 +31,7 @@ void DebugPort::printf(char *str, ...)
   }
 }
 
-void DebugPort::putchar(char c)
+void DebugPort::dbgputchar(char c)
 {
   DBGU_PutChar(c);
 }

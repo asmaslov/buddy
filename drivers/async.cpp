@@ -1,6 +1,17 @@
 #include "async.h"
+#include "assert.h"
 
-unsigned char ASYNC_IsFinished(Async *pAsync)
+unsigned char Async::finished(void)
 {
-  return (pAsync->status != ASYNC_STATUS_PENDING);
+  return (this->status != ASYNC_STATUS_PENDING);
+}
+
+void Async::setPending(void)
+{
+  this->status = ASYNC_STATUS_PENDING;
+}
+
+void Async::setDone(void)
+{
+  this->status = ASYNC_STATUS_DONE;
 }

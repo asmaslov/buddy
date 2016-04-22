@@ -5,7 +5,9 @@
 extern "C" {
 #endif
 
-  extern void AIC_ConfigureIT(unsigned int source, unsigned int mode, void (*handler)( void ));
+  extern void AIC_ConfigureIT(unsigned int source,
+                              unsigned int mode,
+                              void (*handler)( void ));
 
   extern void AIC_EnableIT(unsigned int source);
 

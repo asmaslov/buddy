@@ -1,17 +1,21 @@
 #ifndef ASYNC_H
 #define ASYNC_H
 
-#define ASYNC_STATUS_PENDING        0xFF
+#define ASYNC_STATUS_PENDING 0xFF
+#define ASYNC_STATUS_DONE 0x00
 
-typedef struct _Async {
-  // Asynchronous transfer status
-  volatile unsigned char status;
-  // Callback function to invoke when transfer completes or fails
-  void *callback;
-  // Driver storage area; do not use
-  unsigned int pStorage[4];
-} Async;
+#define ASYNC_PENDIND(status) ((status & ASYNC_STATUS_PENDING) == ASYNC_STATUS_PENDING)
+#define ASYNC_DONE(status) ((status & ASYNC_STATUS_DONE) == ASYNC_STATUS_DONE)
 
-extern unsigned char ASYNC_IsFinished(Async *pAsync);
+typedef void (*Callback)(void);
+
+struct Async
+{
+  unsigned char status;
+  Callback callback;
+  unsigned char finished(void);
+  void setPending(void);
+  void setDone(void);
+};
 
 #endif //#ifndef ASYNC_H
