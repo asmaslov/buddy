@@ -23,3 +23,13 @@ void AIC_DisableIT(unsigned int source)
 {
   AT91C_BASE_AIC->AIC_IDCR = 1 << source;
 }
+
+void AIC_ClearIT(unsigned int source)
+{
+  AT91C_BASE_AIC->AIC_ICCR = 1 << source;
+}
+
+void AIC_FinishIT(void)
+{
+  AT91C_BASE_AIC->AIC_EOICR = 0;
+}

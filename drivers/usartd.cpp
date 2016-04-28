@@ -1,167 +1,170 @@
 #include "usartd.h"
 #include "usart.h"
+#include "pmc.h"
+#include "aic.h"
+#include "assert.h"
+
+#include <iostream>
+#include <stdarg.h>
+
+unsigned char USARTDriver::readBuffer[BUFFER_SIZE];
+
+unsigned int  USARTDriver::idx;
 
 USARTDriver::USARTDriver()
 {
   PIO_Configure(USART0_pins, PIO_LISTSIZE(USART0_pins)); 
-  // TODO: Much to do. Look down
-  //void USART0_Initialize
+  PMC_EnablePeripheral(AT91C_ID_US0);
+
+  idx = 0;
 }
 
 USARTDriver::~USARTDriver()
 {
-
+  PMC_DisablePeripheral(AT91C_ID_US0);
 }
 
-/*void InitUSART0(void)
+void USARTDriver::defaultISR0(void)
 {
-
-  u_pPioA->PIO_PDR = BIT0 | BIT1;   //Disables the PIO from controlling the corresponding pin (enables peripheral control of the pin).
-  u_pPioA->PIO_ASR = BIT0 | BIT1;   //Assigns the I/O line to the peripheral B function.
-  u_pPioA->PIO_BSR = 0;
-
-  //enable the clock of USART
-  u_pPMC->PMC_PCER = 1 << AT91C_ID_US0;
-
-  //Disable interrupts
-  //u_pUSART->US_IDR = (unsigned int) -1;
-
-  //Reset receiver and transmitter
-  u_pUSART0->US_CR = AT91C_US_RSTRX | AT91C_US_RSTTX | AT91C_US_RXDIS | AT91C_US_TXDIS ;
-
-  //Define the baud rate divisor register
-  //const unsigned int main_clock = 47923200;
-  //const unsigned int main_clock = 326578;
-  //const unsigned int main_clock = 2*14756000;
-  //const unsigned int baud_rate  = 9600;
-
-  //set baud rate divisor register
-  //u_pUSART->US_BRGR = 192; //((2*147456000)/9600x16)
-  u_pUSART0->US_BRGR = 313; //((48000000)/9600x16)
-  //u_pUSART->US_BRGR = 96; //((14745600)/9600x16)
-  //u_pUSART0->US_BRGR = 25; //((14745600)/115200x16)
-
-  //write the Timeguard Register
-  u_pUSART0->US_TTGR = 0;
-
-  //Set the USART mode
-  //u_pUSART->US_MR = AT91C_US_ASYNC_MODE;
-  //u_pUSART->US_MR = 0x04C0;
-  //u_pUSART->US_MR = 0x08C0;
-  u_pUSART0->US_MR = 0x08C0;
-
-  //Enable the RX and TX PDC transfer requests
-  u_pPDC0->PDC_PTCR = AT91C_PDC_TXTEN | AT91C_PDC_RXTEN;
-
-  //Enable usart - enable RX receiver and TX transmiter
-  u_pUSART0->US_CR = 0x50;
-
+  AIC_ClearIT(AT91C_ID_US0);
+  unsigned int status;
+  status = AT91C_BASE_US0->US_CSR;
+  TRACE_DEBUG("status %X\n\r", status);  
+  if ((status & AT91C_US_ENDRX) == AT91C_US_ENDRX)
+  {
+    TRACE_DEBUG("USART0 RX interrupt\n\r");
+  }
+  if ((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
+  {
+    idx += BUFFER_SIZE;
+    TRACE_DEBUG("USART0 read %d bytes\n\r", idx);
+    USART_ReadBuffer(AT91C_BASE_US0, readBuffer, BUFFER_SIZE);
+  }
+  AIC_FinishIT();
 }
 
-void InitUSART1(void)
+void USARTDriver::defaultISR1(void)
 {
-
-  //m_pPio->PIO_PDR = BIT5 | BIT6;  //Disables the PIO from controlling the corresponding pin (enables peripheral control of the pin).
-  //m_pPio->PIO_BSR = BIT5 | BIT6;  //Assigns the I/O line to the peripheral B function.
-  u_pPio->PIO_PDR = BIT5 | BIT6 | BIT21 | BIT22;
-  u_pPio->PIO_ASR = BIT5 | BIT6 | BIT21 | BIT22;
-  u_pPio->PIO_BSR = 0;
-
-  //enable the clock of USART
-  u_pPMC->PMC_PCER = 1<<AT91C_ID_US1;
-
-  //Disable interrupts
-  //u_pUSART->US_IDR = (unsigned int) -1;
-
-  //Reset receiver and transmitter
-  //u_pUSART->US_CR = AT91C_US_RSTRX | AT91C_US_RSTTX | AT91C_US_RXDIS | AT91C_US_TXDIS ;
-
-  //Define the baud rate divisor register
-  //const unsigned int main_clock = 47923200;
-  //const unsigned int main_clock = 326578;
-  //const unsigned int main_clock = 2*14756000;
-  //const unsigned int baud_rate  = 9600;
-
-  //set baud rate divisor register
-  //u_pUSART->US_BRGR = 192; //((2*147456000)/9600x16)
-  u_pUSART1->US_BRGR = 313; //((48000000)/9600x16)
-  //u_pUSART->US_BRGR = 96; //((14745600)/9600x16)
-  //u_pUSART1->US_BRGR = 25; //((14745600)/115200x16)
-
-  //write the Timeguard Register
-  u_pUSART1->US_TTGR = 0;
-
-  //Set the USART mode
-  //u_pUSART->US_MR = AT91C_US_ASYNC_MODE;
-  //u_pUSART->US_MR = 0x04C0;
-  //u_pUSART->US_MR = 0x08C0;
-  u_pUSART1->US_MR = 0x08C0;
-
-  //Enable the RX and TX PDC transfer requests
-  u_pPDC1->PDC_PTCR = AT91C_PDC_TXTEN | AT91C_PDC_RXTEN;
-  //u_pPDC->PDC_PTCR = AT91C_PDC_RXTEN;
-
-  //Enable usart
-  u_pUSART1->US_CR = 0x50;
-  
+  TRACE_DEBUG("USART1 interrupt\n\r");
+  unsigned int status;
+  status = AT91C_BASE_US1->US_CSR;
+  if ((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
+  {
+    TRACE_DEBUG("USART1 RX interrupt\n\r");
+  }
 }
 
-void write_char_USART0(unsigned char ch)
+void USARTDriver::configure(unsigned char portnum, unsigned int speed)
 {
-  while (!(u_pUSART0->US_CSR&AT91C_US_TXRDY)==1);
-  u_pUSART0->US_THR = ((ch & 0x1FF));
+  unsigned int mode, ipt;
+  switch(portnum)
+  {
+    case USART0:
+      this->port = USART0;
+      mode = AT91C_US_USMODE_NORMAL
+           | AT91C_US_CLKS_CLOCK
+           | AT91C_US_CHRL_8_BITS
+           | AT91C_US_PAR_NONE
+           | AT91C_US_NBSTOP_1_BIT
+           | AT91C_US_CHMODE_NORMAL;
+      USART_Configure(AT91C_BASE_US0, mode, speed, BOARD_MCK);
+      AIC_ConfigureIT(AT91C_ID_US0, 0, USARTDriver::defaultISR0);
+      AIC_EnableIT(AT91C_ID_US0);
+      USART_SetTransmitterEnabled(AT91C_BASE_US0, true);
+      USART_SetReceiverEnabled(AT91C_BASE_US0, true);
+      USART_ReadBuffer(AT91C_BASE_US0, readBuffer, BUFFER_SIZE);
+      ipt = AT91C_US_ENDRX
+          | AT91C_US_RXBUFF;
+      USART_EnableIt(AT91C_BASE_US0, ipt);
+      TRACE_DEBUG("USART0 enabled\n\r");
+    break;
+    case USART1:
+      this->port = USART1;
+      TRACE_DEBUG("USART1 enabled\n\r");
+    break;
+    default:
+      TRACE_ERROR("USART%d does not exist\n\r", port);
+  }
 }
 
-unsigned char read_char_USART0(void)
+void USARTDriver::uputchar(char c)
 {
-  while (!(u_pUSART0->US_CSR&AT91C_US_RXRDY)==1);
-  return((u_pUSART0->US_RHR) & 0x1FF);
+  switch(this->port)
+  {
+    case USART0:
+      USART_Write(AT91C_BASE_US0, c, TIMEOUT);
+    break;
+    case USART1:
+      USART_Write(AT91C_BASE_US1, c, TIMEOUT);
+    break;
+  }
 }
 
-unsigned char read_char_USART0_nonstop(void)
+void USARTDriver::uprintf(char *str, ...)
 {
-  if((u_pUSART0->US_CSR&AT91C_US_RXRDY)==1)
-    return((u_pUSART0->US_RHR) & 0x1FF);
-  else
-    return 0;
-}
-
-void write_char_USART1(unsigned char ch)
-{
-  //while (!(u_pUSART1->US_CSR&AT91C_US_TXRDY)==1);
-  //u_pUSART1->US_THR = ((ch & 0x1FF));
-}
-
-unsigned char read_char_USART1(void)
-{
-  //while (!(u_pUSART1->US_CSR&AT91C_US_RXRDY)==1);
-  //return((u_pUSART1->US_RHR) & 0x1FF);
-  return 0;
-}
-
-unsigned char read_char_USART1_nonstop(void)
-{
-  //if ((u_pUSART1->US_CSR&AT91C_US_RXRDY)==1)
-  //  return((u_pUSART1->US_RHR) & 0x1FF);
-  //else
-  //  return 0;
-  return 0;
-}
-
-void write_str_USART0(unsigned char* buff)
-{
-  unsigned int i = 0x0;
-  while(buff[i] != '\0') {
-    write_char_USART0(buff[i]);
+  unsigned int i = 0;
+  va_list arg;
+  va_start(arg, str);
+  char buffer[255];
+  memset(&buffer, 0, sizeof(buffer));
+  vsprintf(buffer, str, arg);
+  va_end(arg);
+  while(buffer[i] != '\0')
+  {
+    uputchar(buffer[i]);
     i++;
   }
 }
 
-void write_str_USART1(unsigned char* buff)
+void USARTDriver::udmaprintf(char *str, ...)
 {
-  unsigned int i = 0x0;
-  while(buff[i] != '\0') {
-    write_char_USART1(buff[i]);
-    i++;
+  unsigned int len;
+  va_list arg;
+  va_start(arg, str);
+  char buffer[255];
+  memset(&buffer, 0, sizeof(buffer));
+  len = vsprintf(buffer, str, arg);
+  va_end(arg);
+  switch(this->port)
+  {
+    case USART0:
+      USART_WriteBuffer(AT91C_BASE_US0, buffer, len);
+    break;
+    case USART1:
+      USART_WriteBuffer(AT91C_BASE_US1, buffer, len);
+    break;
   }
-}*/
+}
+
+unsigned char USARTDriver::ugetchar(void)
+{
+  switch(this->port)
+  {
+    case USART0:
+      return USART_Read(AT91C_BASE_US0, TIMEOUT);
+    break;
+    case USART1:
+      return USART_Read(AT91C_BASE_US1, TIMEOUT);
+    break;
+  }
+  return 0;
+}
+
+unsigned char USARTDriver::ulast(void)
+{
+
+  return 0;
+}
+
+void USARTDriver::upush(unsigned char c)
+{
+
+
+
+}
+
+void USARTDriver::upop(void)
+{
+
+
+}

@@ -12,6 +12,10 @@ extern "C" {
   extern void AIC_EnableIT(unsigned int source);
 
   extern void AIC_DisableIT(unsigned int source);
+  
+  extern void AIC_ClearIT(unsigned int source);
+  
+  void AIC_FinishIT(void);
 
 #ifdef __cplusplus
 }

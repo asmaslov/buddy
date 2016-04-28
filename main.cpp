@@ -2,8 +2,11 @@
 #include "trace.h"
 #include "i2cd.h"
 
+#include "pio.h"
+
 #include "lcd.h"
-//#include "usartd.h"
+#include "commander.h"
+#include "usartd.h"
 //#include "delay.h"
 
 #include <stdio.h>
@@ -13,10 +16,8 @@
 
 #define I2C_FREQ_HZ 5000
 
-
 // Slave address of chip
 #define PCF_ADDRESS 0x39
-
 
 typedef struct _I2CNod {
   unsigned int id;
@@ -52,23 +53,21 @@ int main(void)
   // Load bitmap
   LCDWrite130x130bmp();
 
+  Delay(1000);
+  
+  USARTDriver comport;
+  comport.configure(USART0, 57600);
+  
+  Delay(1000);
+  comport.udmaprintf("USART test string");
 
 
     
-  I2CDriver *i2c = new I2CDriver();
-
-  
-  i2c->configureMaster(I2C_FREQ_HZ);
-  
-
-  
+  /*I2CDriver i2c;
+  i2c.configureMaster(I2C_FREQ_HZ);  
   unsigned char message[3] = {0, 1, 2}; 
+  i2c.write(PCF_ADDRESS, &message[0], 1); */
 
-  
-
-  //i2c->write(PCF_ADDRESS, message, 1);
-  i2c->write(PCF_ADDRESS, &message[0], 1); 
-  //i2c->writeNow(PCF_ADDRESS, &message[1], 1); 
 
   //InitUSART0();
  
@@ -80,5 +79,35 @@ int main(void)
   
   // TODO: Make a nice standby mode instead of stupid while(1)
   TRACE_DEBUG("Main program end\n\r");
-  while(1);
+  int noob = 0;
+  
+  static const Pin Buttons_pins[] = {
+    PINS_PUSHBUTTONS,
+  };
+  
+  while(1)
+  {
+    /*noob++;
+    if(noob > 1000000)
+    {
+     unsigned int dummy;  
+     dummy = PIO_Get(&Buttons_pins[PUSHBUTTON_BP1]);
+     if(dummy != 0)
+     {
+       printf("OFF\n");
+       //m_pPioA->PIO_CODR |= BIT6;
+     }
+     else
+     {
+       printf("ON\n");
+       //m_pPioA->PIO_SODR |= BIT6;       
+     }
+     noob = 0;
+     //write_str_USART0("Noob!");
+     printf("Still working %d\n", AT91C_BASE_TC0->TC_CV);
+     
+    }*/
+
+  }
+
 }

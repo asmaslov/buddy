@@ -1028,14 +1028,24 @@ typedef struct _AT91S_USART {
 #define AT91C_US_MAX_ITER     (0x1 << 24) // (USART) Number of Repetitions
 #define AT91C_US_FILTER       (0x1 << 28) // (USART) Receive Line Filter
 // -------- US_IER : (USART Offset: 0x8) Debug Unit Interrupt Enable Register --------
-#define AT91C_US_RXBRK        (0x1 <<  2) // (USART) Break Received/End of Break
-#define AT91C_US_TIMEOUT      (0x1 <<  8) // (USART) Receiver Time-out
-#define AT91C_US_ITERATION    (0x1 << 10) // (USART) Max number of Repetitions Reached
-#define AT91C_US_NACK         (0x1 << 13) // (USART) Non Acknowledge
-#define AT91C_US_RIIC         (0x1 << 16) // (USART) Ring INdicator Input Change Flag
-#define AT91C_US_DSRIC        (0x1 << 17) // (USART) Data Set Ready Input Change Flag
-#define AT91C_US_DCDIC        (0x1 << 18) // (USART) Data Carrier Flag
-#define AT91C_US_CTSIC        (0x1 << 19) // (USART) Clear To Send Input Change Flag
+#define AT91C_US_RXRDY        (0x1 <<  0) // (USART) RXRDY Interrupt
+#define AT91C_US_TXRDY        (0x1 <<  1) // (USART) TXRDY Interrupt
+#define AT91C_US_RXBRK        (0x1 <<  2) // (USART) Receiver Break Interrupt
+#define AT91C_US_ENDRX        (0x1 <<  3) // (USART) End of Receive Transfer Interrupt
+#define AT91C_US_ENDTX        (0x1 <<  4) // (USART) End of Transmit Interrupt
+#define AT91C_US_OVRE         (0x1 <<  5) // (USART) Overrun Interrupt
+#define AT91C_US_FRAME        (0x1 <<  6) // (USART) Framing Error Interrupt
+#define AT91C_US_PARE         (0x1 <<  7) // (USART) Parity Error Interrupt
+#define AT91C_US_TIMEOUT      (0x1 <<  8) // (USART) Time-out Interrupt
+#define AT91C_US_TXEMPTY      (0x1 <<  9) // (USART) TXEMPTY Interrupt
+#define AT91C_US_ITERATION    (0x1 << 10) // (USART) Iteration Interrupt
+#define AT91C_US_TXBUFE       (0x1 << 11) // (USART) TXBUFE Interrupt
+#define AT91C_US_RXBUFF       (0x1 << 12) // (USART) RXBUFF Interrupt
+#define AT91C_US_NACK         (0x1 << 13) // (USART) Non Acknowledge Interrupt
+#define AT91C_US_RIIC         (0x1 << 16) // (USART) Ring Indicator Input Change
+#define AT91C_US_DSRIC        (0x1 << 17) // (USART) Data Set Ready Input Change
+#define AT91C_US_DCDIC        (0x1 << 18) // (USART) Data Carrier Detect Input Change
+#define AT91C_US_CTSIC        (0x1 << 19) // (USART) Clear To Send Input Change
 // -------- US_IDR : (USART Offset: 0xc) Debug Unit Interrupt Disable Register --------
 // -------- US_IMR : (USART Offset: 0x10) Debug Unit Interrupt Mask Register --------
 // -------- US_CSR : (USART Offset: 0x14) Debug Unit Channel Status Register --------

@@ -1868,6 +1868,9 @@
           <name>$PROJ_DIR$\drivers\pwmcd.h</name>
         </file>
         <file>
+          <name>$PROJ_DIR$\drivers\tcd.h</name>
+        </file>
+        <file>
           <name>$PROJ_DIR$\drivers\usartd.h</name>
         </file>
       </group>
@@ -1887,17 +1890,26 @@
         <name>$PROJ_DIR$\drivers\pwmcd.cpp</name>
       </file>
       <file>
+        <name>$PROJ_DIR$\drivers\tcd.cpp</name>
+      </file>
+      <file>
         <name>$PROJ_DIR$\drivers\usartd.cpp</name>
       </file>
     </group>
     <group>
       <name>Headers</name>
       <file>
+        <name>$PROJ_DIR$\commander.h</name>
+      </file>
+      <file>
         <name>$PROJ_DIR$\debugport.h</name>
       </file>
     </group>
     <file>
       <name>$PROJ_DIR$\bender.h</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\commander.cpp</name>
     </file>
     <file>
       <name>$PROJ_DIR$\debugport.cpp</name>
@@ -2441,6 +2453,9 @@
         <name>$PROJ_DIR$\periphery\spi.h</name>
       </file>
       <file>
+        <name>$PROJ_DIR$\periphery\tc.h</name>
+      </file>
+      <file>
         <name>$PROJ_DIR$\periphery\twi.h</name>
       </file>
       <file>
@@ -2467,6 +2482,9 @@
     </file>
     <file>
       <name>$PROJ_DIR$\periphery\spi.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\periphery\tc.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\periphery\twi.c</name>

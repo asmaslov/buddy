@@ -8,6 +8,8 @@ void USART_Configure(AT91S_USART *usart,
 {
   // Reset and disable receiver & transmitter
   usart->US_CR = AT91C_US_RSTRX | AT91C_US_RSTTX | AT91C_US_RXDIS | AT91C_US_TXDIS;
+  // Disable all interrupts
+  usart->US_IDR = AT91C_US_AIR;
   // Configure mode
   usart->US_MR = mode;
   // Configure baudrate
@@ -17,6 +19,20 @@ void USART_Configure(AT91S_USART *usart,
     usart->US_BRGR = (masterClock / baudrate) / 16;
   }
   // TODO: other modes
+}
+
+void USART_EnableIt(AT91S_USART *usart,
+                    unsigned char interrupt)
+{
+  SANITY_CHECK(usart);
+  usart->US_IER = interrupt;
+}
+
+void USART_DisableIt(AT91S_USART *usart,
+                    unsigned char interrupt)
+{
+  SANITY_CHECK(usart);
+  usart->US_IDR = interrupt;
 }
 
 void USART_SetTransmitterEnabled(AT91S_USART *usart,
@@ -47,9 +63,9 @@ void USART_SetReceiverEnabled(AT91S_USART *usart,
 
 void USART_Write(AT91S_USART *usart,
                  unsigned short data,
-                 volatile unsigned int timeOut)
+                 volatile unsigned int timeout)
 {
-  if (timeOut == 0)
+  if (timeout == 0)
   {
     while ((usart->US_CSR & AT91C_US_TXEMPTY) == 0);
   }
@@ -57,12 +73,12 @@ void USART_Write(AT91S_USART *usart,
   {
     while ((usart->US_CSR & AT91C_US_TXEMPTY) == 0)
     {
-      if (timeOut == 0)
+      if (timeout == 0)
       {
         TRACE_ERROR("USART_Write: Timed out.\n\r");
         return;
       }
-      timeOut--;
+      timeout--;
     }
   }
   usart->US_THR = data;
@@ -94,9 +110,9 @@ unsigned char USART_WriteBuffer(AT91S_USART *usart,
 }
 
 unsigned short USART_Read(AT91S_USART *usart,
-                          volatile unsigned int timeOut)
+                          volatile unsigned int timeout)
 {
-  if (timeOut == 0)
+  if (timeout == 0)
   {
     while ((usart->US_CSR & AT91C_US_RXRDY) == 0);
   }
@@ -104,12 +120,12 @@ unsigned short USART_Read(AT91S_USART *usart,
   {
     while ((usart->US_CSR & AT91C_US_RXRDY) == 0)
     {
-      if (timeOut == 0)
+      if (timeout == 0)
       {
         TRACE_ERROR("USART_Read: Timed out.\n\r");
         return 0;
       }
-      timeOut--;
+      timeout--;
     }
   }
   return usart->US_RHR;
@@ -152,9 +168,9 @@ unsigned char USART_IsDataAvailable(AT91S_USART *usart)
   }
 }
 
-void USART_SetIrdaFilter(AT91S_USART *pUsart,
+void USART_SetIrdaFilter(AT91S_USART *usart,
                          unsigned char filter)
 {
-  SANITY_CHECK(pUsart);
-  pUsart->US_IF = filter;
+  SANITY_CHECK(usart);
+  usart->US_IF = filter;
 }

@@ -1,5 +1,6 @@
 #include "i2cd.h"
 #include "twi.h"
+#include "pmc.h"
 #include "aic.h"
 #include "assert.h"
 
@@ -20,17 +21,17 @@ I2CDriver::I2CDriver()
   isize = DEFAULT_MASTER_ADDRESS_LEN;
   pI2C = AT91C_BASE_TWI;
   PIO_Configure(TWI_pins, PIO_LISTSIZE(TWI_pins));
+  PMC_EnablePeripheral(AT91C_ID_TWI);
 }
 
 I2CDriver::~I2CDriver()
 {
-
+  PMC_DisablePeripheral(AT91C_ID_TWI);
 }
 
 void I2CDriver::configureMaster(unsigned int frequencyHz)
 { 
   SANITY_CHECK(frequencyHz);
-  AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_TWI;
   TWI_ConfigureMaster(AT91C_BASE_TWI, frequencyHz, BOARD_MCK);
   AIC_ConfigureIT(AT91C_ID_TWI, 0, I2CDriver::driverHandler);
   AIC_EnableIT(AT91C_ID_TWI);
