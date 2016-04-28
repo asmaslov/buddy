@@ -5,8 +5,9 @@
 #include "pio.h"
 
 #include "lcd.h"
-#include "commander.h"
+//#include "commander.h"
 #include "usartd.h"
+#include "parser.h"
 //#include "delay.h"
 
 #include <stdio.h>
@@ -55,11 +56,18 @@ int main(void)
 
   Delay(1000);
   
+  CommandVault cmd;
+  cmd.requests.buttonA = 0;
+  Parser parser(&cmd.values, &cmd.holdkeys, &cmd.requests, &cmd.key);
+  
   USARTDriver comport;
   comport.configure(USART0, 57600);
+  comport.setParserCallback(parser.work);
+  
   
   Delay(1000);
   comport.udmaprintf("USART test string");
+  
 
 
     
@@ -87,6 +95,10 @@ int main(void)
   
   while(1)
   {
+    if(cmd.requests.buttonA)
+    {
+      TRACE_DEBUG("YES\n\r");
+    }
     /*noob++;
     if(noob > 1000000)
     {

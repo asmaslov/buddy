@@ -8,15 +8,12 @@
 #include <stdarg.h>
 
 unsigned char USARTDriver::readBuffer[BUFFER_SIZE];
-
-unsigned int  USARTDriver::idx;
+ParserCallback USARTDriver::callback;
 
 USARTDriver::USARTDriver()
 {
   PIO_Configure(USART0_pins, PIO_LISTSIZE(USART0_pins)); 
   PMC_EnablePeripheral(AT91C_ID_US0);
-
-  idx = 0;
 }
 
 USARTDriver::~USARTDriver()
@@ -29,29 +26,16 @@ void USARTDriver::defaultISR0(void)
   AIC_ClearIT(AT91C_ID_US0);
   unsigned int status;
   status = AT91C_BASE_US0->US_CSR;
-  TRACE_DEBUG("status %X\n\r", status);  
-  if ((status & AT91C_US_ENDRX) == AT91C_US_ENDRX)
-  {
-    TRACE_DEBUG("USART0 RX interrupt\n\r");
-  }
   if ((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
   {
-    idx += BUFFER_SIZE;
-    TRACE_DEBUG("USART0 read %d bytes\n\r", idx);
+    // TODO: Here we must copy bytes from buffer to parser
+    if(callback)
+    {
+      callback(readBuffer, BUFFER_SIZE);
+    }
     USART_ReadBuffer(AT91C_BASE_US0, readBuffer, BUFFER_SIZE);
   }
   AIC_FinishIT();
-}
-
-void USARTDriver::defaultISR1(void)
-{
-  TRACE_DEBUG("USART1 interrupt\n\r");
-  unsigned int status;
-  status = AT91C_BASE_US1->US_CSR;
-  if ((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
-  {
-    TRACE_DEBUG("USART1 RX interrupt\n\r");
-  }
 }
 
 void USARTDriver::configure(unsigned char portnum, unsigned int speed)
@@ -80,11 +64,17 @@ void USARTDriver::configure(unsigned char portnum, unsigned int speed)
     break;
     case USART1:
       this->port = USART1;
-      TRACE_DEBUG("USART1 enabled\n\r");
+      TRACE_DEBUG("USART1 is not configured yet\n\r");
     break;
     default:
       TRACE_ERROR("USART%d does not exist\n\r", port);
   }
+}
+
+void USARTDriver::setParserCallback(ParserCallback call)
+{
+  SANITY_CHECK(call);
+  callback = call;
 }
 
 void USARTDriver::uputchar(char c)
@@ -148,23 +138,4 @@ unsigned char USARTDriver::ugetchar(void)
     break;
   }
   return 0;
-}
-
-unsigned char USARTDriver::ulast(void)
-{
-
-  return 0;
-}
-
-void USARTDriver::upush(unsigned char c)
-{
-
-
-
-}
-
-void USARTDriver::upop(void)
-{
-
-
 }

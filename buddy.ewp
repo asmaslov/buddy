@@ -1904,6 +1904,9 @@
       <file>
         <name>$PROJ_DIR$\debugport.h</name>
       </file>
+      <file>
+        <name>$PROJ_DIR$\parser.h</name>
+      </file>
     </group>
     <file>
       <name>$PROJ_DIR$\bender.h</name>
@@ -1916,6 +1919,9 @@
     </file>
     <file>
       <name>$PROJ_DIR$\main.cpp</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\parser.cpp</name>
     </file>
     <configuration>
       <name>Debug_sram</name>

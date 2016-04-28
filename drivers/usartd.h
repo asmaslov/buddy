@@ -23,7 +23,7 @@
 #define PINS_USART1_RXTX PIN_USART1_RXD, PIN_USART1_TXD
 
 //#define MAX_BPS 500
-#define BUFFER_SIZE 12
+#define BUFFER_SIZE 10
 #define TIMEOUT 0
 
 static const Pin USART0_pins[] = {
@@ -34,29 +34,28 @@ static const Pin USART1_pins[] = {
   PINS_USART1,
 };
 
+typedef void (*ParserCallback)(unsigned char *buf, int size);
+
 class USARTDriver
 {
   private:
     unsigned char port;
     static unsigned char readBuffer[BUFFER_SIZE];
-    static unsigned int idx;
     
   private:
+    static ParserCallback callback;
     static void defaultISR0(void);
-    static void defaultISR1(void);
     
   public:
     USARTDriver();
     ~USARTDriver();
     void configure(unsigned char portnum,
                    unsigned int speed = 115200);
+    void setParserCallback(ParserCallback call);
     void uputchar(char c);
     void uprintf(char *str, ...);
     void udmaprintf(char *str, ...);
     unsigned char ugetchar(void);
-    static unsigned char ulast(void);
-    static void upush(unsigned char c);
-    static void upop(void);
 };
 
 #endif //#ifndef USARTD_H
