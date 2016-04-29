@@ -8,7 +8,7 @@
 #include <stdarg.h>
 
 unsigned char USARTDriver::readBuffer[BUFFER_SIZE];
-ParserCallback USARTDriver::callback;
+ParserFunc USARTDriver::parser;
 
 USARTDriver::USARTDriver()
 {
@@ -29,9 +29,9 @@ void USARTDriver::defaultISR0(void)
   if ((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
   {
     // TODO: Here we must copy bytes from buffer to parser
-    if(callback)
+    if(parser)
     {
-      callback(readBuffer, BUFFER_SIZE);
+      parser(readBuffer, BUFFER_SIZE);
     }
     USART_ReadBuffer(AT91C_BASE_US0, readBuffer, BUFFER_SIZE);
   }
@@ -71,10 +71,10 @@ void USARTDriver::configure(unsigned char portnum, unsigned int speed)
   }
 }
 
-void USARTDriver::setParserCallback(ParserCallback call)
+void USARTDriver::setParserFunc(ParserFunc pfunc)
 {
-  SANITY_CHECK(call);
-  callback = call;
+  SANITY_CHECK(pfunc);
+  parser = pfunc;
 }
 
 void USARTDriver::uputchar(char c)

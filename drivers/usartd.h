@@ -34,7 +34,7 @@ static const Pin USART1_pins[] = {
   PINS_USART1,
 };
 
-typedef void (*ParserCallback)(unsigned char *buf, int size);
+typedef void (*ParserFunc)(unsigned char *buf, int size);
 
 class USARTDriver
 {
@@ -43,7 +43,7 @@ class USARTDriver
     static unsigned char readBuffer[BUFFER_SIZE];
     
   private:
-    static ParserCallback callback;
+    static ParserFunc parser;
     static void defaultISR0(void);
     
   public:
@@ -51,7 +51,7 @@ class USARTDriver
     ~USARTDriver();
     void configure(unsigned char portnum,
                    unsigned int speed = 115200);
-    void setParserCallback(ParserCallback call);
+    void setParserFunc(ParserFunc pfunc);
     void uputchar(char c);
     void uprintf(char *str, ...);
     void udmaprintf(char *str, ...);

@@ -31,12 +31,23 @@ typedef struct {
   unsigned char buttonY;
 } Requests;
 
-typedef struct {
-  Values values;
-  Holdkeys holdkeys;
-  Requests requests;
-  int key;
-} CommandVault;
+class CommandVault 
+{  
+  private:
+    int key;
+  
+  public:
+    CommandVault();
+    ~CommandVault();
+    void lock(void);
+    void unlock(void);
+    
+  public:
+    Values values;
+    Holdkeys holdkeys;
+    Requests requests;
+    
+};
 
 typedef struct {
   unsigned char unit;
@@ -99,22 +110,15 @@ typedef struct {
 class Parser
 { 
   private:
-    static Values *values;
-    static Holdkeys *holdkeys;
-    static Requests *requests;
-    static int *key;
+    static CommandVault *comvault;
     static ControlPacket packet;
     static int nextPartIdx;
     static bool packetRcvd;
     static bool packetGood;
     static bool needFeedback;
-    
-  private:
-    static void lock(void);
-    static void unlock(void);
   
   public:
-    Parser(Values *val, Holdkeys *hk, Requests *rq, int *k);
+    Parser(CommandVault *cv);
     ~Parser();
     static void work(unsigned char *buf, int size);
 };

@@ -57,14 +57,11 @@ int main(void)
   Delay(1000);
   
   CommandVault cmd;
-  cmd.requests.buttonA = 0;
-  Parser parser(&cmd.values, &cmd.holdkeys, &cmd.requests, &cmd.key);
-  
+  Parser parser(&cmd);
   USARTDriver comport;
   comport.configure(USART0, 57600);
-  comport.setParserCallback(parser.work);
-  
-  
+  comport.setParserFunc(parser.work);
+   
   Delay(1000);
   comport.udmaprintf("USART test string");
   

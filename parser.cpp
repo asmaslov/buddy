@@ -1,26 +1,45 @@
 #include "parser.h"
 #include "assert.h"
     
-Values *Parser::values;
-Holdkeys *Parser::holdkeys;
-Requests *Parser::requests;
-int *Parser::key;
+CommandVault *Parser::comvault;
 ControlPacket Parser::packet;
 int Parser::nextPartIdx;
 bool Parser::packetRcvd;
 bool Parser::packetGood;
 bool Parser::needFeedback;
 
-Parser::Parser(Values *val, Holdkeys *hk, Requests *rq, int *k)
+CommandVault::CommandVault()
 {
-  SANITY_CHECK(val);
-  values = val;
-  SANITY_CHECK(hk);
-  holdkeys = hk;
-  SANITY_CHECK(rq);
-  requests = rq;
-  SANITY_CHECK(k);
-  key = k;
+  key = 0;
+  values.leftJoyX = 0;
+  values.leftJoyY = 0;
+  values.rightJoyX = 0;
+  values.rightJoyY = 0;
+  holdkeys.crossUp = 0;
+  holdkeys.crossDown = 0;
+  holdkeys.crossLeft = 0;
+  holdkeys.crossRight = 0;
+  requests.buttonA = 0;
+  requests.buttonB = 0;
+  requests.buttonX = 0;
+  requests.buttonY = 0;
+}
+
+void CommandVault::lock()
+{
+  while(key);
+  key = 1;
+}
+
+void CommandVault::unlock()
+{
+  key = 0;
+}
+
+Parser::Parser(CommandVault *cv)
+{
+  SANITY_CHECK(cv);
+  comvault = cv;
   nextPartIdx = 0;
   packetRcvd = false;
   packetGood = false;
@@ -30,16 +49,6 @@ Parser::Parser(Values *val, Holdkeys *hk, Requests *rq, int *k)
 Parser::~Parser()
 {
 
-}
-
-void Parser::lock()
-{
-  *key = 1;
-}
-
-void Parser::unlock()
-{
-  *key = 0;
 }
 
 void Parser::work(unsigned char *buf, int size)
@@ -125,20 +134,20 @@ void Parser::work(unsigned char *buf, int size)
     switch (packet.type)
     {
       case PACKET_0:
-        lock();
-        values->leftJoyX = packet.leftJoyXs.val * (packet.leftJoyXs.sign == 0 ? 1 : -1);
-        values->leftJoyY = packet.leftJoyYs.val * (packet.leftJoyYs.sign == 0 ? 1 : -1);
-        values->rightJoyX = packet.rightJoyXs.val * (packet.rightJoyXs.sign == 0 ? 1 : -1);
-        values->rightJoyY = packet.rightJoyYs.val * (packet.rightJoyYs.sign == 0 ? 1 : -1);
-        holdkeys->crossUp = packet.codes.crossUp;
-        holdkeys->crossDown = packet.codes.crossDown;
-        holdkeys->crossLeft = packet.codes.crossLeft;
-        holdkeys->crossRight = packet.codes.crossRight;
-        requests->buttonA = packet.requests.buttonA;
-        requests->buttonB = packet.requests.buttonB;
-        requests->buttonX = packet.requests.buttonX;
-        requests->buttonY = packet.requests.buttonY;
-        unlock();
+        comvault->lock();
+        comvault->values.leftJoyX = packet.leftJoyXs.val * (packet.leftJoyXs.sign == 0 ? 1 : -1);
+        comvault->values.leftJoyY = packet.leftJoyYs.val * (packet.leftJoyYs.sign == 0 ? 1 : -1);
+        comvault->values.rightJoyX = packet.rightJoyXs.val * (packet.rightJoyXs.sign == 0 ? 1 : -1);
+        comvault->values.rightJoyY = packet.rightJoyYs.val * (packet.rightJoyYs.sign == 0 ? 1 : -1);
+        comvault->holdkeys.crossUp = packet.codes.crossUp;
+        comvault->holdkeys.crossDown = packet.codes.crossDown;
+        comvault->holdkeys.crossLeft = packet.codes.crossLeft;
+        comvault->holdkeys.crossRight = packet.codes.crossRight;
+        comvault->requests.buttonA = packet.requests.buttonA;
+        comvault->requests.buttonB = packet.requests.buttonB;
+        comvault->requests.buttonX = packet.requests.buttonX;
+        comvault->requests.buttonY = packet.requests.buttonY;
+        comvault->unlock();
       break;      
       case PACKET_1:
 
