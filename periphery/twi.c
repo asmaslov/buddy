@@ -102,12 +102,6 @@ unsigned char TWI_ReadByte(AT91S_TWI *pTwi)
   return pTwi->TWI_RHR;
 }
 
-void TWI_WriteByte(AT91S_TWI *pTwi, unsigned char byte)
-{
-  SANITY_CHECK(pTwi);
-  pTwi->TWI_THR = byte;
-}
-
 void TWI_StartWrite(AT91S_TWI *pTwi,
                     unsigned char address,
                     unsigned int iaddress,
@@ -127,6 +121,12 @@ void TWI_StartWrite(AT91S_TWI *pTwi,
   pTwi->TWI_IADR = iaddress;
   // Write first byte to send
   TWI_WriteByte(pTwi, byte);
+}
+
+void TWI_WriteByte(AT91S_TWI *pTwi, unsigned char byte)
+{
+  SANITY_CHECK(pTwi);
+  pTwi->TWI_THR = byte;
 }
 
 unsigned char TWI_ByteReceived(AT91S_TWI *pTwi)

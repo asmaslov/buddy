@@ -46,7 +46,7 @@ void I2CDriver::driverHandler(void)
 {
   unsigned char status;
   status = TWI_GetMaskedStatus(pI2C);
-  if (I2C_STATUS_RXRDY(status))
+  if(I2C_STATUS_RXRDY(status))
   {    
     transfer.transferData[transfer.transferCountReal] = TWI_ReadByte(pI2C);
     transfer.transferCountReal++;
@@ -55,12 +55,12 @@ void I2CDriver::driverHandler(void)
       TWI_DisableIt(pI2C, AT91C_TWI_RXRDY);
       TWI_EnableIt(pI2C, AT91C_TWI_TXCOMP);
     }
-    else if (transfer.transferCountReal == (transfer.transferCountNeed - 1))
+    else if(transfer.transferCountReal == (transfer.transferCountNeed - 1))
     {
       TWI_Stop(pI2C);
     }
   }
-  else if (I2C_STATUS_TXRDY(status))
+  else if(I2C_STATUS_TXRDY(status))
   {
     if (transfer.transferCountNeed == transfer.transferCountReal)
     {
@@ -73,10 +73,12 @@ void I2CDriver::driverHandler(void)
       transfer.transferCountReal++;
     }
   }
-  else if (I2C_STATUS_TXCOMP(status))
+  else if(I2C_STATUS_TXCOMP(status))
   {
     TRACE_DEBUG("I2C transfer complete\n\r");
     TWI_DisableIt(pI2C, AT91C_TWI_TXCOMP);
+    transfer.transferData[transfer.transferCountReal] = TWI_ReadByte(pI2C);
+    transfer.transferCountReal++;
     SANITY_CHECK(transfer.async);
     transfer.async->setDone();
     if (transfer.async->callback != NULL)
@@ -110,16 +112,20 @@ void I2CDriver::read(unsigned char *data,
   }
   else
   {
-    if (count == 1)
-    {
-      TWI_Stop(pI2C);
-    }
     transfer.async->setPending();
     transfer.transferData = data;
     transfer.transferCountNeed = count;  
-    TWI_EnableIt(pI2C, AT91C_TWI_RXRDY);
+    if(count == 1)
+    {
+      TWI_Stop(pI2C);
+      TWI_EnableIt(pI2C, AT91C_TWI_TXCOMP);
+    }
+    else
+    {
+      TWI_EnableIt(pI2C, AT91C_TWI_RXRDY);    
+    }
     TWI_StartRead(pI2C, address, iaddress, iaddresslen);
-    transfer.transferCountReal = 1;
+    transfer.transferCountReal = 0;
   }
 }
 

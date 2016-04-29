@@ -14,7 +14,7 @@
 #define DEFAULT_MASTER_ADDRESS 0x0F
 #define DEFAULT_MASTER_ADDRESS_LEN 1
 
-#define I2C_FREQ_HZ 5000
+#define I2C_FREQ_HZ 10000
 #define I2C_BUFFER_SIZE 3
 #define I2C_MAX_ATTEMPT 50000
 
@@ -24,9 +24,7 @@ typedef struct {
   unsigned char readBuffer[I2C_BUFFER_SIZE];
 } I2CNod;
 
-static const Pin TWI_pins[] = {
-  PINS_TWI  
-};
+static const Pin TWI_pins[] = { PINS_TWI };
 
 struct Transfer
 {

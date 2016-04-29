@@ -25,15 +25,15 @@ extern "C" {
 
   extern unsigned char TWI_ReadByte(AT91S_TWI *pTwi);
 
-  extern void TWI_WriteByte(AT91S_TWI *pTwi,
-                            unsigned char byte);
-
   extern void TWI_StartWrite(AT91S_TWI *pTwi,
                              unsigned char address,
                              unsigned int iaddress,
                              unsigned char isize,
                              unsigned char byte);
 
+  extern void TWI_WriteByte(AT91S_TWI *pTwi,
+                            unsigned char byte);
+  
   extern unsigned char TWI_ByteReceived(AT91S_TWI *pTwi);
 
   extern unsigned char TWI_ByteSent(AT91S_TWI *pTwi);

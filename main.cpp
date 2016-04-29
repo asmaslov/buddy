@@ -26,14 +26,10 @@ int main(void)
   TRACE_INFO("Firmware version 0.0.1 unstable\n\r");
   TRACE_DEBUG("Compiled: %s %s \n\r", __DATE__, __TIME__);
   TRACE_DEBUG("Main program start\n\r");
-  static const Pin Buttons_pins[] = {
-    PINS_PUSHBUTTONS,
-  };
+  static const Pin Buttons_pins[] = { PINS_PUSHBUTTONS };
   PIO_Configure(Buttons_pins, PIO_LISTSIZE(Buttons_pins));
   bool sw1, sw2;
-  static const Pin Joystick_pins[] = {
-    PINS_JOYSTICK,
-  };
+  static const Pin Joystick_pins[] = { PINS_JOYSTICK };
   PIO_Configure(Joystick_pins, PIO_LISTSIZE(Joystick_pins));
   bool joyup, joydown, joyleft, joyright, joysw;
   unsigned long tick = 0;
@@ -99,9 +95,7 @@ int main(void)
                   joyright ? '+' : '-',
                   joysw ? '+' : '-');
       // Start here
-      
-
-
+    
       if(sw1)
       {
         i2c.write(&message[0], 1);
@@ -128,7 +122,6 @@ int main(void)
       {
         TRACE_DEBUG("Button B\n\r");
       }
-      
       
       // End here
       tick = 0;   
