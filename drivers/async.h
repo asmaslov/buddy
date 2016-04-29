@@ -7,15 +7,21 @@
 #define ASYNC_PENDIND(status) ((status & ASYNC_STATUS_PENDING) == ASYNC_STATUS_PENDING)
 #define ASYNC_DONE(status) ((status & ASYNC_STATUS_DONE) == ASYNC_STATUS_DONE)
 
-typedef void (*Callback)(void);
+typedef void (*AsyncCallback)(void);
 
-struct Async
+class Async
 {
-  unsigned char status;
-  Callback callback;
-  unsigned char finished(void);
-  void setPending(void);
-  void setDone(void);
+  private:
+    unsigned char status;
+
+  public:
+    Async();
+    ~Async();
+    AsyncCallback callback;
+    unsigned char finished(void);
+    unsigned char busy(void);
+    void setPending(void);
+    void setDone(void);
 };
 
 #endif //#ifndef ASYNC_H

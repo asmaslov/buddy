@@ -23,7 +23,7 @@
 #define PINS_USART1_RXTX PIN_USART1_RXD, PIN_USART1_TXD
 
 //#define MAX_BPS 500
-#define BUFFER_SIZE 10
+#define USART_BUFFER_SIZE 10
 #define TIMEOUT 0
 
 static const Pin USART0_pins[] = {
@@ -40,7 +40,7 @@ class USARTDriver
 {
   private:
     unsigned char port;
-    static unsigned char readBuffer[BUFFER_SIZE];
+    static unsigned char readBuffer[USART_BUFFER_SIZE];
     
   private:
     static ParserFunc parser;

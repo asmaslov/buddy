@@ -6,17 +6,11 @@
 
 AT91S_TWI *I2CDriver::pI2C;
 Transfer I2CDriver::transfer;
-
-void dummyCallback()
-{
-  TRACE_DEBUG("Dummy callback fired !\n\r");
-}
+Async I2CDriver::defaultAsync;
 
 I2CDriver::I2CDriver()
 {
-  dummyAsync.callback = dummyCallback;
-  dummyAsync.setDone();
-  transfer.busy = false;
+  transfer.async->setDone();
   iaddress = DEFAULT_MASTER_ADDRESS;
   isize = DEFAULT_MASTER_ADDRESS_LEN;
   pI2C = AT91C_BASE_TWI;
@@ -29,10 +23,9 @@ I2CDriver::~I2CDriver()
   PMC_DisablePeripheral(AT91C_ID_TWI);
 }
 
-void I2CDriver::configureMaster(unsigned int frequencyHz)
+void I2CDriver::configureMaster(void)
 { 
-  SANITY_CHECK(frequencyHz);
-  TWI_ConfigureMaster(AT91C_BASE_TWI, frequencyHz, BOARD_MCK);
+  TWI_ConfigureMaster(AT91C_BASE_TWI, I2C_FREQ_HZ, BOARD_MCK);
   AIC_ConfigureIT(AT91C_ID_TWI, 0, I2CDriver::driverHandler);
   AIC_EnableIT(AT91C_ID_TWI);
 }
@@ -70,29 +63,39 @@ void I2CDriver::driverHandler(void)
   }
   else if (I2C_STATUS_TXCOMP(status))
   {
+    TRACE_DEBUG("I2C transfer complete\n\r");
     TWI_DisableIt(pI2C, AT91C_TWI_TXCOMP);
-    transfer.pTransferAsync->setDone();
-    if (transfer.pTransferAsync->callback)
+    SANITY_CHECK(transfer.async);
+    transfer.async->setDone();
+    if (transfer.async->callback != NULL)
     {         
-      transfer.pTransferAsync->callback();
+      transfer.async->callback();
     }
-    transfer.busy = false;
+    transfer.async->setDone();
   }
 }
 
 void I2CDriver::read(unsigned char address,
                      unsigned char *data,
                      unsigned int count,
-                     Async *pAsync)
+                     Async *async)
 {
   TRACE_DEBUG("I2C read transfer start\n\r");
   SANITY_CHECK(pI2C);
   SANITY_CHECK((address & 0x80) == 0);
   SANITY_CHECK((iaddress & 0xFF000000) == 0);
   SANITY_CHECK(isize < 4);
-  if (transfer.busy == true)
+  if(async != NULL)
   {
-    TRACE_ERROR("I2C transfer is already pending\\n\r");
+    transfer.async = async;
+  }
+  else
+  {
+    transfer.async = &I2CDriver::defaultAsync;
+  }
+  if (transfer.async->busy())
+  {
+    TRACE_ERROR("I2C transfer is already pending\n\r");
   }
   else
   {
@@ -100,19 +103,9 @@ void I2CDriver::read(unsigned char address,
     {
       TWI_Stop(pI2C);
     }
-    transfer.busy = true;
+    transfer.async->setPending();
     transfer.transferData = data;
     transfer.transferCountNeed = count;  
-    if(pAsync != NULL)
-    {
-      pAsync->setPending();
-      transfer.pTransferAsync = pAsync;
-    }
-    else
-    {
-      dummyAsync.setPending();
-      transfer.pTransferAsync = &dummyAsync;
-    }
     TWI_EnableIt(pI2C, AT91C_TWI_RXRDY);
     TWI_StartRead(pI2C, address, iaddress, isize);
     transfer.transferCountReal = 1;
@@ -122,33 +115,30 @@ void I2CDriver::read(unsigned char address,
 void I2CDriver::write(unsigned char address,
                       unsigned char *data,
                       unsigned int count,
-                      Async *pAsync)
+                      Async *async)
 {
   TRACE_DEBUG("I2C write transfer start\n\r");
-  TRACE_DEBUG("0x%X\n\r", data[0]);  
   SANITY_CHECK(pI2C);
   SANITY_CHECK((address & 0x80) == 0);
   SANITY_CHECK((iaddress & 0xFF000000) == 0);
   SANITY_CHECK(isize < 4);
-  if (transfer.busy == true)
+  if(async != NULL)
+  {
+    transfer.async = async;
+  }
+  else
+  {
+    transfer.async = &I2CDriver::defaultAsync;
+  }
+  if (transfer.async->busy())
   {
     TRACE_ERROR("I2C transfer is already pending\n\r");
   }
   else
   {
-    transfer.busy = true;
+    transfer.async->setPending();
     transfer.transferData = data;
     transfer.transferCountNeed = count;
-    if(pAsync != NULL)
-    {
-      pAsync->setPending();
-      transfer.pTransferAsync = pAsync;
-    }
-    else
-    {
-      dummyAsync.setPending();
-      transfer.pTransferAsync = &dummyAsync;
-    }
     TWI_EnableIt(pI2C, AT91C_TWI_TXRDY);
     TWI_StartWrite(pI2C, address, iaddress, isize, *data);
     transfer.transferCountReal = 1;
