@@ -11,8 +11,8 @@ Async I2CDriver::defaultAsync;
 I2CDriver::I2CDriver()
 {
   transfer.async->setDone();
-  iaddress = DEFAULT_MASTER_ADDRESS;
-  isize = DEFAULT_MASTER_ADDRESS_LEN;
+  iaddress = 0;
+  iaddresslen = 0;
   pI2C = AT91C_BASE_TWI;
   PIO_Configure(TWI_pins, PIO_LISTSIZE(TWI_pins));
   PMC_EnablePeripheral(AT91C_ID_TWI);
@@ -28,6 +28,18 @@ void I2CDriver::configureMaster(void)
   TWI_ConfigureMaster(AT91C_BASE_TWI, I2C_FREQ_HZ, BOARD_MCK);
   AIC_ConfigureIT(AT91C_ID_TWI, 0, I2CDriver::driverHandler);
   AIC_EnableIT(AT91C_ID_TWI);
+}
+
+void I2CDriver::setAddress(unsigned char addr)
+{
+  address = addr;
+}
+
+ void I2CDriver::setInternalAddress(unsigned int iaddr,
+                                    unsigned char iaddrlen)
+{
+  iaddress = iaddr;
+  iaddresslen = iaddrlen;
 }
 
 void I2CDriver::driverHandler(void)
@@ -75,8 +87,7 @@ void I2CDriver::driverHandler(void)
   }
 }
 
-void I2CDriver::read(unsigned char address,
-                     unsigned char *data,
+void I2CDriver::read(unsigned char *data,
                      unsigned int count,
                      Async *async)
 {
@@ -84,7 +95,7 @@ void I2CDriver::read(unsigned char address,
   SANITY_CHECK(pI2C);
   SANITY_CHECK((address & 0x80) == 0);
   SANITY_CHECK((iaddress & 0xFF000000) == 0);
-  SANITY_CHECK(isize < 4);
+  SANITY_CHECK(iaddresslen < 4);
   if(async != NULL)
   {
     transfer.async = async;
@@ -107,13 +118,12 @@ void I2CDriver::read(unsigned char address,
     transfer.transferData = data;
     transfer.transferCountNeed = count;  
     TWI_EnableIt(pI2C, AT91C_TWI_RXRDY);
-    TWI_StartRead(pI2C, address, iaddress, isize);
+    TWI_StartRead(pI2C, address, iaddress, iaddresslen);
     transfer.transferCountReal = 1;
   }
 }
 
-void I2CDriver::write(unsigned char address,
-                      unsigned char *data,
+void I2CDriver::write(unsigned char *data,
                       unsigned int count,
                       Async *async)
 {
@@ -121,7 +131,7 @@ void I2CDriver::write(unsigned char address,
   SANITY_CHECK(pI2C);
   SANITY_CHECK((address & 0x80) == 0);
   SANITY_CHECK((iaddress & 0xFF000000) == 0);
-  SANITY_CHECK(isize < 4);
+  SANITY_CHECK(iaddresslen < 4);
   if(async != NULL)
   {
     transfer.async = async;
@@ -140,17 +150,16 @@ void I2CDriver::write(unsigned char address,
     transfer.transferData = data;
     transfer.transferCountNeed = count;
     TWI_EnableIt(pI2C, AT91C_TWI_TXRDY);
-    TWI_StartWrite(pI2C, address, iaddress, isize, *data);
+    TWI_StartWrite(pI2C, address, iaddress, iaddresslen, *data);
     transfer.transferCountReal = 1;
   }
 }
 
-void I2CDriver::readNow(unsigned char address,
-                        unsigned char *data,
+void I2CDriver::readNow(unsigned char *data,
                         unsigned int count)
 {
   unsigned int attempt;
-  TWI_StartRead(pI2C, address, iaddress, isize);
+  TWI_StartRead(pI2C, address, iaddress, iaddresslen);
   while (count > 0)
   {
     if (count == 1)
@@ -174,12 +183,11 @@ void I2CDriver::readNow(unsigned char address,
   }
 }
 
-void I2CDriver::writeNow(unsigned char address,
-                         unsigned char *data,
+void I2CDriver::writeNow(unsigned char *data,
                          unsigned int count)
 {
   unsigned int attempt;
-  TWI_StartWrite(pI2C, address, iaddress, isize, *data++);
+  TWI_StartWrite(pI2C, address, iaddress, iaddresslen, *data++);
   count--;
   while (count > 0)
   {

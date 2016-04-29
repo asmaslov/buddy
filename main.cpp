@@ -68,11 +68,11 @@ int main(void)
   //Commander cmd(&cmdVault);
   //cmd.start();
     
-  //I2CDriver i2c;
-  //i2c.configureMaster();
+  I2CDriver i2c;
+  i2c.configureMaster();
    
-  //unsigned char message[3] = {0, 1, 2}; 
-  //i2c.write(PCF_ADDRESS, &message[0], 1);
+  unsigned char message[2] = {0xFE, 0xFD};
+  i2c.setAddress(PCF_ADDRESS);
 
   //initPWMD();
   
@@ -89,7 +89,7 @@ int main(void)
       joyleft = !PIO_Get(&Joystick_pins[JOYSTICK_LEFT]);
       joyright = !PIO_Get(&Joystick_pins[JOYSTICK_RIGHT]);
       joysw = !PIO_Get(&Joystick_pins[JOYSTICK_BUTTON]);
-      TRACE_DEBUG("SW1 SW2 JSL JSR JSU JSD JSS\n\r");
+      TRACE_DEBUG("SW1 SW2 JSU JSD JSL JSR JSS\n\r");
       TRACE_DEBUG(" %c   %c   %c   %c   %c   %c   %c\n\r",
                   sw1 ? '+' : '-',
                   sw2 ? '+' : '-',
@@ -104,16 +104,30 @@ int main(void)
 
       if(sw1)
       {
+        i2c.write(&message[0], 1);
+        TRACE_DEBUG("I2C data write %X\n\r", message[0]);
+      }
+      if(sw2)
+      {
+        i2c.write(&message[1], 1);
+        TRACE_DEBUG("I2C data write %X\n\r", message[1]);
+      }
+      if(joysw)
+      {
         unsigned char dummy2 = 0;  
-        //i2c.read(PCF_ADDRESS, &dummy2, 1);
-        TRACE_DEBUG("I2C data %X\n\r", dummy2);
+        i2c.read(&dummy2, 1);
+        TRACE_DEBUG("I2C data read %X\n\r", dummy2);
       }
        
       if(cmdVault.requests.buttonA)
       {
-        TRACE_DEBUG("YES\n\r");
+        TRACE_DEBUG("Button A\n\r");
       }
       
+      if(cmdVault.requests.buttonB)
+      {
+        TRACE_DEBUG("Button B\n\r");
+      }
       
       
       // End here

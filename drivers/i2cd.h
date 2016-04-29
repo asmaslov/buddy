@@ -45,10 +45,9 @@ class I2CDriver
     static Transfer transfer;
     static void driverHandler(void);
     static Async defaultAsync;
-  
-  public:
+    unsigned char address;
     unsigned int iaddress; 
-    unsigned char isize;
+    unsigned char iaddresslen;
 
   public:
     I2CDriver();
@@ -56,19 +55,18 @@ class I2CDriver
     void configureMaster(void);
     // TODO: Slave mode
     //void initSlave(void); 
-    void read(unsigned char address,
-              unsigned char *data,
+    void setAddress(unsigned char addr);
+    void setInternalAddress(unsigned int iaddr,
+                            unsigned char iaddrlen);
+    void read(unsigned char *data,
               unsigned int count,
               Async *async = NULL);
-    void write(unsigned char address,
-               unsigned char *data,
+    void write(unsigned char *data,
                unsigned int count,
                Async *async = NULL);
-    void readNow(unsigned char address,
-                 unsigned char *data,
+    void readNow(unsigned char *data,
                  unsigned int count);
-    void writeNow(unsigned char address,
-                  unsigned char *data,
+    void writeNow(unsigned char *data,
                   unsigned int count);
 };
 
