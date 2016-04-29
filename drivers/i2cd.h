@@ -11,10 +11,18 @@
 #define I2C_STATUS_RXRDY(status) ((status & AT91C_TWI_RXRDY) == AT91C_TWI_RXRDY)
 #define I2C_STATUS_TXCOMP(status) ((status & AT91C_TWI_TXCOMP) == AT91C_TWI_TXCOMP)
 
-#define DEFAULT_MASTER_ADDRESS 0xFF
+#define DEFAULT_MASTER_ADDRESS 0x0F
 #define DEFAULT_MASTER_ADDRESS_LEN 1
 
+#define I2C_FREQ_HZ 5000
+#define I2C_BUFFER_SIZE 3
 #define I2C_MAX_ATTEMPT 50000
+
+typedef struct {
+  unsigned int id;
+  unsigned char wrtiteBuffer[I2C_BUFFER_SIZE];
+  unsigned char readBuffer[I2C_BUFFER_SIZE];
+} I2CNod;
 
 static const Pin TWI_pins[] = {
   PINS_TWI  
@@ -22,12 +30,13 @@ static const Pin TWI_pins[] = {
 
 struct Transfer
 {
-  bool busy;
   unsigned char *transferData;
   unsigned int transferCountNeed;
   unsigned int transferCountReal;
-  Async *pTransferAsync;
+  Async *async;
 };
+
+typedef void (*I2CReceiveFunc)(unsigned char *buf, int size);
 
 class I2CDriver
 {
@@ -35,7 +44,7 @@ class I2CDriver
     static AT91S_TWI *pI2C;
     static Transfer transfer;
     static void driverHandler(void);
-    Async dummyAsync;
+    static Async defaultAsync;
   
   public:
     unsigned int iaddress; 
@@ -44,17 +53,17 @@ class I2CDriver
   public:
     I2CDriver();
     ~I2CDriver();
-    void configureMaster(unsigned int frequencyHz);
+    void configureMaster(void);
     // TODO: Slave mode
     //void initSlave(void); 
     void read(unsigned char address,
               unsigned char *data,
               unsigned int count,
-              Async *pAsync = NULL);
+              Async *async = NULL);
     void write(unsigned char address,
                unsigned char *data,
                unsigned int count,
-               Async *pAsync = NULL);
+               Async *async = NULL);
     void readNow(unsigned char address,
                  unsigned char *data,
                  unsigned int count);
