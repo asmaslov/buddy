@@ -5,13 +5,11 @@
 extern "C" {
 #endif
 
-  void UTIL_Loop(unsigned int loop);
+  void delayLoop(unsigned int loop);
 
-  void UTIL_WaitTimeInMs(unsigned int mck,
-                         unsigned int time_ms);
+  void delayMs(unsigned int time_ms);
 
-  void UTIL_WaitTimeInUs(unsigned int mck,
-                         unsigned int time_us);
+  void delayUs(unsigned int time_us);
 
 #ifdef __cplusplus
 }

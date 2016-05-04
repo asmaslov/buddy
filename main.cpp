@@ -9,7 +9,7 @@
 #include "usartd.h"
 #include "parser.h"
 
-//#include "delay.h"
+#include "delay.h"
 
 #include <stdio.h>
 #include <iostream>
@@ -17,9 +17,7 @@
 // Slave address of chip
 #define PCF_ADDRESS 0x39
 
-#define MAIN_LOOP_DELAY 1000000
-
-void Delay (unsigned long a) { while (--a != 0); }
+#define MAIN_LOOP_DELAY 10000
 
 int main(void)
 {   
@@ -32,25 +30,24 @@ int main(void)
   static const Pin Joystick_pins[] = { PINS_JOYSTICK };
   PIO_Configure(Joystick_pins, PIO_LISTSIZE(Joystick_pins));
   bool joyup, joydown, joyleft, joyright, joysw;
-  unsigned long tick = 0;
   bool enable = true;
 
   //UTIL_WaitTimeInMs(BOARD_MCK, 1000);
   //UTIL_WaitTimeInUs(BOARD_MCK, 1000);
   
   LCD_init();
-  Delay(1000);
+  delayUs(100);
   //UTIL_WaitTimeInMs(BOARD_MCK, 1000);
 
   // Set settings
   LCDSettings();
   
-  Delay(1000);
+  delayUs(100);
 
   // Load bitmap
   LCDWrite130x130bmp();
 
-  Delay(1000);
+  delayUs(100);
   
   CommandVault cmdVault;
   Parser parser(&cmdVault);
@@ -58,7 +55,7 @@ int main(void)
   comport.configure(USART0, 57600);
   comport.setParserFunc(parser.work);
    
-  Delay(1000);
+  delayUs(100);
   comport.udmaprintf("USART test string");
   
   //Commander cmd(&cmdVault);
@@ -72,11 +69,29 @@ int main(void)
 
   //initPWMD();
   
+  int ppin = 0;
+  static const Pin Test_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
+  PIO_Configure(&Test_pin, 1);
+  
+  
   TRACE_DEBUG("Main program end\n\r");
   // TODO: Make a nice standby mode instead of while(1)
   while(1)
   {
-    if((tick++ > MAIN_LOOP_DELAY) && (enable))
+    delayMs(46);
+
+    if(ppin == 1)
+    {
+      ppin = 0;
+      PIO_Clear(&Test_pin);
+    }
+    else
+    {
+      ppin = 1;
+      PIO_Set(&Test_pin);
+    }
+    
+    if(enable)
     {
       sw1 = !PIO_Get(&Buttons_pins[PUSHBUTTON_BP1]);
       sw2 = !PIO_Get(&Buttons_pins[PUSHBUTTON_BP2]);
@@ -124,7 +139,6 @@ int main(void)
       }
       
       // End here
-      tick = 0;   
     }
   }
 }
