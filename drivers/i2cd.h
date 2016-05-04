@@ -18,6 +18,9 @@
 #define I2C_BUFFER_SIZE 3
 #define I2C_MAX_ATTEMPT 50000
 
+#define TRANSFER_WRITE 0
+#define TRANSFER_READ 1
+
 typedef struct {
   unsigned int id;
   unsigned char wrtiteBuffer[I2C_BUFFER_SIZE];
@@ -31,6 +34,7 @@ struct Transfer
   unsigned char *transferData;
   unsigned int transferCountNeed;
   unsigned int transferCountReal;
+  unsigned char transferType;
   Async *async;
 };
 
