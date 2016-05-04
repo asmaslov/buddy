@@ -1,12 +1,22 @@
 #include "pwmcd.h"
 #include "pwmc.h"
+#include "pmc.h"
 
-// PWM Setup
-#define PWM_FREQUENCY 20000
-#define MAX_DUTY_CYCLE 50
-#define MIN_DUTY_CYCLE 0
+PWMCDriver::PWMCDriver()
+{
+  
+  
+  PIO_Configure(PWMC_pins, PIO_LISTSIZE(PWMC_pins));
+  PMC_EnablePeripheral(AT91C_ID_PWMC);
 
-static void ISR_Pwmc(void)
+}
+
+PWMCDriver::~PWMCDriver()
+{
+
+}
+
+void PWMCDriver::driverISR(void)
 {
   static unsigned int count = 0;
   static unsigned int duty = MIN_DUTY_CYCLE;
@@ -42,9 +52,6 @@ static void ISR_Pwmc(void)
 
 /*void initPWMD(void)
 {
-  PIO_Configure(PWMC_pins, PIO_LISTSIZE(PWMC_pins));
-  // Enable PWMC peripheral clock
-  AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_PWMC;
   // Settings:
   // - 100kHz PWM period (PWM_FREQUENCY)
   // - 1s rise/fall time for the LED intensity

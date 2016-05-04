@@ -22,6 +22,15 @@
 #define ADC_CHANNEL_6 6
 #define ADC_CHANNEL_7 7
 
+// ADC clock frequency, at 10-bit resolution (in Hz)
+#define ADC_MAX_CK_10BIT 5000000
+// ADC clock frequency, at 8-bit resolution (in Hz)
+#define ADC_MAX_CK_8BIT 8000000
+// Startup time max, return from Idle mode (in µs)
+#define ADC_STARTUP_TIME_MAX 20
+// Track and hold Acquisition Time min (in ns)
+#define ADC_TRACK_HOLD_TIME_MIN 600
+
 #ifdef __cplusplus
 extern "C" {
 #endif

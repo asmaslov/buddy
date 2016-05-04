@@ -1,6 +1,7 @@
 #include "debugport.h"
 #include "trace.h"
 #include "i2cd.h"
+#include "adcd.h"
 
 #include "pio.h"
 
@@ -64,6 +65,8 @@ int main(void)
   I2CDriver i2c;
   i2c.configureMaster();
    
+  ADCDriver adc;
+  
   unsigned char message[2] = {0xFE, 0xFD};
   i2c.setAddress(PCF_ADDRESS);
 
@@ -100,6 +103,7 @@ int main(void)
       joyleft = !PIO_Get(&Joystick_pins[JOYSTICK_LEFT]);
       joyright = !PIO_Get(&Joystick_pins[JOYSTICK_RIGHT]);
       joysw = !PIO_Get(&Joystick_pins[JOYSTICK_BUTTON]);
+      adc.convert();
       TRACE_DEBUG("SW1 SW2 JSU JSD JSL JSR JSS\n\r");
       TRACE_DEBUG(" %c   %c   %c   %c   %c   %c   %c\n\r",
                   sw1 ? '+' : '-',
@@ -109,6 +113,11 @@ int main(void)
                   joyleft ? '+' : '-',
                   joyright ? '+' : '-',
                   joysw ? '+' : '-');
+      TRACE_DEBUG("TEMP TRIM MIC\n\r");
+      TRACE_DEBUG(" %d   %d   %d\n\r",
+                  adc.getTemp(),
+                  adc.getTrim() * 100 / ADC_VREF,
+                  adc.getMicIn());
       // Start here
     
       if(sw1)
