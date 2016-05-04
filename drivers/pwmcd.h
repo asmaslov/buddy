@@ -3,7 +3,7 @@
 
 #include "pio.h"
 
-#define PWM_FREQUENCY 20000
+#define PWM_FREQUENCY 1000
 #define MAX_DUTY_CYCLE 50
 #define MIN_DUTY_CYCLE 0
 
@@ -13,23 +13,26 @@
 #define PIN_PWMC_PWM3 {BIT22, AT91C_BASE_PIOB, AT91C_ID_PIOB, PIO_PERIPH_A, PIO_DEFAULT}
 #define PINS_PWMC PIN_PWMC_PWM0, PIN_PWMC_PWM1, PIN_PWMC_PWM2, PIN_PWMC_PWM3
 
-#define CHANNEL_PWM0 0
-#define CHANNEL_PWM1 1
-#define CHANNEL_PWM2 2
-#define CHANNEL_PWM3 3
+#define PWM_SPEAKER 0
+#define PWM_LCD_BRI 1
+#define PWM_CONTROL 2
 
-static const Pin PWMC_pins[] = { PIN_PWMC_PWM0 };
+static const Pin PWMC_pins[] = { PIN_PWMC_PWM0, PIN_PWMC_PWM2 };
 
 class PWMCDriver
 {
+  private:
+    static unsigned int count;
+    static unsigned int duty;
+    static unsigned char fadeIn;
+    
   private:
     static void driverISR(void);
   
   public:
     PWMCDriver();
     ~PWMCDriver();
+    void init(void);
 };
-
-void initPWMD(void);
 
 #endif //#ifndef PWMCD_H

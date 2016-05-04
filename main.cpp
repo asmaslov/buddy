@@ -2,6 +2,7 @@
 #include "trace.h"
 #include "i2cd.h"
 #include "adcd.h"
+#include "pwmcd.h"
 
 #include "pio.h"
 
@@ -33,44 +34,41 @@ int main(void)
   bool joyup, joydown, joyleft, joyright, joysw;
   bool enable = true;
 
-  //UTIL_WaitTimeInMs(BOARD_MCK, 1000);
-  //UTIL_WaitTimeInUs(BOARD_MCK, 1000);
-  
+  delayMs(100);
   LCD_init();
   delayUs(100);
-  //UTIL_WaitTimeInMs(BOARD_MCK, 1000);
-
-  // Set settings
-  LCDSettings();
-  
+  LCDSettings(); 
   delayUs(100);
-
-  // Load bitmap
   LCDWrite130x130bmp();
-
   delayUs(100);
   
   CommandVault cmdVault;
   Parser parser(&cmdVault);
   USARTDriver comport;
+  delayMs(100);
   comport.configure(USART0, 57600);
+  delayMs(100);
   comport.setParserFunc(parser.work);
    
-  delayUs(100);
+  delayMs(100);
   comport.udmaprintf("USART test string");
   
   //Commander cmd(&cmdVault);
   //cmd.start();
     
   I2CDriver i2c;
+  delayMs(100);
   i2c.configureMaster();
+  delayMs(100);
    
   ADCDriver adc;
+  delayMs(100);
   
   unsigned char message[2] = {0xFE, 0xFD};
   i2c.setAddress(PCF_ADDRESS);
-
-  //initPWMD();
+  
+  PWMCDriver pwm;
+  pwm.init();
   
   int ppin = 0;
   static const Pin Test_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
