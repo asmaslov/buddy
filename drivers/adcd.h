@@ -25,9 +25,6 @@ class ADCDriver
 {
   private:
     unsigned int timeout;
-    static unsigned char conversionDoneTemp;
-    static unsigned char conversionDoneTrim;
-    static unsigned char conversionDoneMicIn;
     static unsigned int temp;
     static unsigned int trim;
     static unsigned int micIn;
@@ -39,7 +36,7 @@ class ADCDriver
   public:
     ADCDriver();
     ~ADCDriver();
-    void convert(void);
+    void start(void);
     
   public:  
     unsigned int getTemp(void);
