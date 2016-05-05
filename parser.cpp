@@ -8,38 +8,8 @@ bool Parser::packetRcvd;
 bool Parser::packetGood;
 bool Parser::needFeedback;
 
-CommandVault::CommandVault()
+Parser::Parser()
 {
-  key = 0;
-  values.leftJoyX = 0;
-  values.leftJoyY = 0;
-  values.rightJoyX = 0;
-  values.rightJoyY = 0;
-  holdkeys.crossUp = 0;
-  holdkeys.crossDown = 0;
-  holdkeys.crossLeft = 0;
-  holdkeys.crossRight = 0;
-  requests.buttonA = 0;
-  requests.buttonB = 0;
-  requests.buttonX = 0;
-  requests.buttonY = 0;
-}
-
-void CommandVault::lock()
-{
-  while(key);
-  key = 1;
-}
-
-void CommandVault::unlock()
-{
-  key = 0;
-}
-
-Parser::Parser(CommandVault *cv)
-{
-  SANITY_CHECK(cv);
-  comvault = cv;
   nextPartIdx = 0;
   packetRcvd = false;
   packetGood = false;
@@ -49,6 +19,12 @@ Parser::Parser(CommandVault *cv)
 Parser::~Parser()
 {
 
+}
+
+void Parser::connectVault(CommandVault *cv)
+{
+  SANITY_CHECK(cv);
+  comvault = cv;
 }
 
 void Parser::work(unsigned char *buf, int size)
@@ -101,10 +77,10 @@ void Parser::work(unsigned char *buf, int size)
     }
     if (nextPartIdx == 1)
     {
-      if ((PACKET_0 == recByte)
-       || (PACKET_1 == recByte)
-       || (PACKET_2 == recByte)
-       || (PACKET_3 == recByte))
+      if ((CONTROL_PACKET_0 == recByte)
+       || (CONTROL_PACKET_1 == recByte)
+       || (CONTROL_PACKET_2 == recByte)
+       || (CONTROL_PACKET_3 == recByte))
       {
         packet.type = recByte;
         nextPartIdx = 2;
@@ -114,7 +90,7 @@ void Parser::work(unsigned char *buf, int size)
         nextPartIdx = 0;
       }
     }
-    if ((nextPartIdx == 0) && (DEFAULT_ADDR == recByte) && (!packetRcvd))
+    if ((nextPartIdx == 0) && (DEFAULT_UNIT_ADDR == recByte) && (!packetRcvd))
     {
       packet.unit = recByte;
       nextPartIdx = 1;
@@ -123,7 +99,8 @@ void Parser::work(unsigned char *buf, int size)
   if (packetRcvd)
   {
     packetRcvd = false;
-    // TODO: Check CRC
+    // TODO:
+    // Check CRC
     // unsigned char checkCRC = 0;
     packetGood = true;
   }
@@ -131,9 +108,10 @@ void Parser::work(unsigned char *buf, int size)
   {
     packetGood = false;
     needFeedback = true;
+    SANITY_CHECK(comvault);
     switch (packet.type)
     {
-      case PACKET_0:
+      case CONTROL_PACKET_0:
         comvault->lock();
         comvault->values.leftJoyX = packet.leftJoyXs.val * (packet.leftJoyXs.sign == 0 ? 1 : -1);
         comvault->values.leftJoyY = packet.leftJoyYs.val * (packet.leftJoyYs.sign == 0 ? 1 : -1);
@@ -149,13 +127,13 @@ void Parser::work(unsigned char *buf, int size)
         comvault->requests.buttonY = packet.requests.buttonY;
         comvault->unlock();
       break;      
-      case PACKET_1:
+      case CONTROL_PACKET_1:
 
       break;      
-      case PACKET_2:
+      case CONTROL_PACKET_2:
 
       break;      
-      case PACKET_3:
+      case CONTROL_PACKET_3:
 
       break;      
     }

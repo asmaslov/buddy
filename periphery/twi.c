@@ -10,7 +10,6 @@ void TWI_ConfigureMaster(AT91S_TWI *pTwi,
   unsigned int ckdiv = 0;
   unsigned int cldiv;
   unsigned char ok = 0;
-  
   TRACE_DEBUG("TWI_ConfigureMaster()\n\r");
   SANITY_CHECK(pTwi);
   #ifdef AT91C_TWI_SVEN
@@ -81,7 +80,7 @@ void TWI_StartRead(AT91S_TWI *pTwi,
                    unsigned int iaddress,
                    unsigned char isize)
 {
-  TRACE_DEBUG("TWI_StartRead()\n\r");
+  //TRACE_DEBUG("TWI_StartRead()\n\r");
   SANITY_CHECK(pTwi);
   SANITY_CHECK((address & 0x80) == 0);
   SANITY_CHECK((iaddress & 0xFF000000) == 0);
@@ -108,7 +107,7 @@ void TWI_StartWrite(AT91S_TWI *pTwi,
                     unsigned char isize,
                     unsigned char byte)
 {
-  TRACE_DEBUG("TWI_StartWrite()\n\r");
+  //TRACE_DEBUG("TWI_StartWrite()\n\r");
   SANITY_CHECK(pTwi);
   SANITY_CHECK((address & 0x80) == 0);
   SANITY_CHECK((iaddress & 0xFF000000) == 0);

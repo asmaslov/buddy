@@ -1,4 +1,6 @@
 #include "pio.h"
+#include "aic.h"
+#include "assert.h"
 
 static void PIO_SetPeripheralA(AT91S_PIO *pio,
                                unsigned int mask,
@@ -182,3 +184,116 @@ unsigned int PIO_GetISR(const Pin *pin)
 {
   return (pin->pio->PIO_ISR);
 }
+
+static void PioInterruptHandler(unsigned int id, AT91S_PIO *pPio)
+{
+  unsigned int status;
+  unsigned int i;
+  // Read PIO controller status
+  status = pPio->PIO_ISR;
+  status &= pPio->PIO_IMR;
+  // Check pending events
+  if (status != 0)
+  {
+    TRACE_DEBUG("PIO interrupt on PIO controller #%d\n\r", id);
+    // Find triggering source
+    i = 0;
+    while (status != 0)
+    {
+      // There cannot be an unconfigured source enabled.
+      SANITY_CHECK(i < numSources);
+      // Source is configured on the same controller
+      if (pSources[i].pPin->id == id)
+      {
+        // Source has PIOs whose statuses have changed
+        if ((status & pSources[i].pPin->mask) != 0)
+        {
+          TRACE_DEBUG("Interrupt source #%d triggered\n\r", i);
+          pSources[i].handler(pSources[i].pPin);
+          status &= ~(pSources[i].pPin->mask);
+        }
+      }
+      i++;
+    }
+  }
+}
+
+static void InterruptHandler(void)
+{
+  PioInterruptHandler(AT91C_ID_PIOA, AT91C_BASE_PIOA);
+  PioInterruptHandler(AT91C_ID_PIOB, AT91C_BASE_PIOB);
+}
+
+void PIO_InitializeInterrupts(unsigned int priority)
+{
+  TRACE_DEBUG("PIO_Initialize()\n\r");
+  SANITY_CHECK((priority & ~AT91C_AIC_PRIOR) == 0);
+  // Reset sources
+  numSources = 0;
+  // Configure PIO interrupt sources
+  TRACE_DEBUG("PIO_Initialize: Configuring PIOA\n\r");
+  AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_PIOA;
+  AT91C_BASE_PIOA->PIO_ISR;
+  AT91C_BASE_PIOA->PIO_IDR = 0xFFFFFFFF;
+  AIC_ConfigureIT(AT91C_ID_PIOA, priority, InterruptHandler);
+  AIC_EnableIT(AT91C_ID_PIOA);
+  
+  TRACE_DEBUG("PIO_Initialize: Configuring PIOB\n\r");
+  AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_PIOB;
+  AT91C_BASE_PIOB->PIO_ISR;
+  AT91C_BASE_PIOB->PIO_IDR = 0xFFFFFFFF;
+  AIC_ConfigureIT(AT91C_ID_PIOB, priority, InterruptHandler);
+  AIC_EnableIT(AT91C_ID_PIOB);
+}
+
+void PIO_ConfigureIt(const Pin *pPin,
+                     void (*handler)(const Pin *))
+{
+  InterruptSource *pSource;
+  TRACE_DEBUG("PIO_ConfigureIt()\n\r");
+  SANITY_CHECK(pPin);
+  ASSERT(numSources < MAX_INTERRUPT_SOURCES,
+         "-F- PIO_ConfigureIt: Increase MAX_INTERRUPT_SOURCES\n\r");
+  // Define new source
+  TRACE_DEBUG("PIO_ConfigureIt: Defining new source #%d.\n\r",  numSources);
+  pSource = &(pSources[numSources]);
+  pSource->pPin = pPin;
+  pSource->handler = handler;
+  numSources++;
+}
+
+void PIO_EnableIt(const Pin *pPin)
+{
+  TRACE_DEBUG("PIO_EnableIt()\n\r");
+  SANITY_CHECK(pPin);
+  #ifndef NOASSERT
+    unsigned int i = 0;
+    unsigned char found = 0;
+    while ((i < numSources) && !found) {
+
+        if (pSources[i].pPin == pPin) {
+
+            found = 1;
+        }
+        i++;
+    }
+    ASSERT(found, "-F- PIO_EnableIt: Interrupt source has not been configured\n\r");
+  #endif
+  pPin->pio->PIO_ISR;
+  pPin->pio->PIO_IER = pPin->mask;
+}
+
+//------------------------------------------------------------------------------
+/// Disables a given interrupt source, with no added side effects.
+/// \param pPin  Interrupt source to disable.
+//------------------------------------------------------------------------------
+void PIO_DisableIt(const Pin *pPin)
+{
+    SANITY_CHECK(pPin);
+
+    TRACE_DEBUG("PIO_DisableIt()\n\r");
+
+    pPin->pio->PIO_IDR = pPin->mask;
+}
+
+

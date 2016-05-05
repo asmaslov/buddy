@@ -1902,6 +1902,9 @@
         <name>$PROJ_DIR$\commander.h</name>
       </file>
       <file>
+        <name>$PROJ_DIR$\comvault.h</name>
+      </file>
+      <file>
         <name>$PROJ_DIR$\debugport.h</name>
       </file>
       <file>
@@ -1915,6 +1918,9 @@
       <name>$PROJ_DIR$\commander.cpp</name>
     </file>
     <file>
+      <name>$PROJ_DIR$\comvault.cpp</name>
+    </file>
+    <file>
       <name>$PROJ_DIR$\debugport.cpp</name>
     </file>
     <file>
@@ -1922,6 +1928,9 @@
     </file>
     <file>
       <name>$PROJ_DIR$\parser.cpp</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\protocol.h</name>
     </file>
     <configuration>
       <name>Debug_sram</name>
@@ -2450,6 +2459,9 @@
         <name>$PROJ_DIR$\periphery\pio.h</name>
       </file>
       <file>
+        <name>$PROJ_DIR$\periphery\pit.h</name>
+      </file>
+      <file>
         <name>$PROJ_DIR$\periphery\pmc.h</name>
       </file>
       <file>
@@ -2479,6 +2491,9 @@
     </file>
     <file>
       <name>$PROJ_DIR$\periphery\pio.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\periphery\pit.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\periphery\pmc.c</name>

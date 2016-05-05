@@ -16,20 +16,36 @@
 #define PIO_DEGLITCH  (1 << 1)
 #define PIO_OPENDRAIN (1 << 2)
 
+#define MAX_INTERRUPT_SOURCES 7
+
 #define PIO_LISTSIZE(pPins) (sizeof(pPins) / sizeof(Pin))
 
 typedef struct _Pin {
-  /// Bitmask indicating which pin(s) to configure.
+  /// Bitmask indicating which pin(s) to configure
   unsigned int mask; 
-  /// Pointer to the PIO controller which has the pin(s).
+  /// Pointer to the PIO controller which has the pin(s)
   AT91S_PIO *pio;
-  /// Peripheral ID of the PIO controller which has the pin(s).
+  /// Peripheral ID of the PIO controller which has the pin(s)
   unsigned char id;
-  /// Pin type.
+  /// Pin type
   unsigned char type;
-  /// Pin attribute.
+  /// Pin attribute
   unsigned char attribute;
 } Pin;
+
+typedef struct _InterruptSource {
+  /// Pointer to the source pin instance
+  const Pin *pPin;
+  /// Interrupt handler
+  void (*handler)(const Pin *);
+} InterruptSource;
+
+/// List of interrupt sources.
+static InterruptSource pSources[MAX_INTERRUPT_SOURCES];
+
+/// Number of currently defined interrupt sources.
+static unsigned int numSources;
+
 
 #ifdef __cplusplus
 extern "C" {
@@ -47,6 +63,15 @@ extern "C" {
   extern unsigned int PIO_GetISR(const Pin *pin);
 
   extern unsigned char PIO_GetOutputDataStatus(const Pin *pin);
+  
+  extern void PIO_InitializeInterrupts(unsigned int priority);
+
+  extern void PIO_ConfigureIt(const Pin *pPin,
+                              void (*handler)(const Pin *));
+
+  extern void PIO_EnableIt(const Pin *pPin);
+
+  extern void PIO_DisableIt(const Pin *pPin);
   
 #ifdef __cplusplus
 }

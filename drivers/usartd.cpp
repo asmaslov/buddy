@@ -18,6 +18,8 @@ USARTDriver::USARTDriver()
 
 USARTDriver::~USARTDriver()
 {
+  AIC_DisableIT(AT91C_ID_US0);
+  AIC_DisableIT(AT91C_ID_US1);
   PMC_DisablePeripheral(AT91C_ID_US0);
 }
 
@@ -52,7 +54,7 @@ void USARTDriver::configure(unsigned char portnum, unsigned int speed)
            | AT91C_US_NBSTOP_1_BIT
            | AT91C_US_CHMODE_NORMAL;
       USART_Configure(AT91C_BASE_US0, mode, speed, BOARD_MCK);
-      AIC_ConfigureIT(AT91C_ID_US0, 0, USARTDriver::defaultISR0);
+      AIC_ConfigureIT(AT91C_ID_US0, AT91C_AIC_PRIOR_LOWEST, USARTDriver::defaultISR0);
       AIC_EnableIT(AT91C_ID_US0);
       USART_SetTransmitterEnabled(AT91C_BASE_US0, true);
       USART_SetReceiverEnabled(AT91C_BASE_US0, true);

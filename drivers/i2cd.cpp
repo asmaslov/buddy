@@ -23,10 +23,11 @@ I2CDriver::~I2CDriver()
   PMC_DisablePeripheral(AT91C_ID_TWI);
 }
 
-void I2CDriver::configureMaster(void)
+void I2CDriver::configureMaster(unsigned int freq)
 { 
-  TWI_ConfigureMaster(AT91C_BASE_TWI, I2C_FREQ_HZ, BOARD_MCK);
-  AIC_ConfigureIT(AT91C_ID_TWI, 0, I2CDriver::driverHandler);
+  SANITY_CHECK(freq);
+  TWI_ConfigureMaster(AT91C_BASE_TWI, freq, BOARD_MCK);
+  AIC_ConfigureIT(AT91C_ID_TWI, AT91C_AIC_PRIOR_LOWEST, I2CDriver::driverHandler);
   AIC_EnableIT(AT91C_ID_TWI);
 }
 
@@ -72,7 +73,7 @@ void I2CDriver::driverHandler(void)
   }
   else if(I2C_STATUS_TXCOMP(status))
   {
-    TRACE_DEBUG("I2C transfer complete\n\r");
+    //TRACE_DEBUG("I2C transfer complete\n\r");
     TWI_DisableIt(pI2C, AT91C_TWI_TXCOMP);
     if (transfer.transferType == TRANSFER_READ)
     {
@@ -93,7 +94,7 @@ void I2CDriver::read(unsigned char *data,
                      unsigned int count,
                      Async *async)
 {
-  TRACE_DEBUG("I2C read transfer start\n\r");
+  //TRACE_DEBUG("I2C read transfer start\n\r");
   SANITY_CHECK(pI2C);
   SANITY_CHECK((address & 0x80) == 0);
   SANITY_CHECK((iaddress & 0xFF000000) == 0);
@@ -108,7 +109,7 @@ void I2CDriver::read(unsigned char *data,
   }
   if (transfer.async->busy())
   {
-    TRACE_ERROR("I2C transfer is already pending\n\r");
+    TRACE_ERROR("I2C transfer is already pending on trying to read\n\r");
   }
   else
   {
@@ -134,7 +135,7 @@ void I2CDriver::write(unsigned char *data,
                       unsigned int count,
                       Async *async)
 {
-  TRACE_DEBUG("I2C write transfer start\n\r");
+  //TRACE_DEBUG("I2C write transfer start\n\r");
   SANITY_CHECK(pI2C);
   SANITY_CHECK((address & 0x80) == 0);
   SANITY_CHECK((iaddress & 0xFF000000) == 0);
@@ -149,7 +150,7 @@ void I2CDriver::write(unsigned char *data,
   }
   if (transfer.async->busy())
   {
-    TRACE_ERROR("I2C transfer is already pending\n\r");
+    TRACE_ERROR("I2C transfer is already pending on trying to write\n\r");
   }
   else
   {
@@ -187,7 +188,7 @@ void I2CDriver::readNow(unsigned char *data,
   while(!TWI_TransferComplete(pI2C) && (++attempt < I2C_MAX_ATTEMPT) );
   if (attempt == I2C_MAX_ATTEMPT)
   {
-    TRACE_ERROR("I2C transfer complete timeout\n\r");
+    TRACE_ERROR("I2C transfer complete timeout on trying to read\n\r");
   }
 }
 
@@ -203,7 +204,7 @@ void I2CDriver::writeNow(unsigned char *data,
     while(!TWI_ByteSent(pI2C) && (++attempt < I2C_MAX_ATTEMPT));
     if (attempt == I2C_MAX_ATTEMPT)
     {
-      TRACE_ERROR("I2C byte send timeout\n\r");
+      TRACE_ERROR("I2C byte write timeout\n\r");
     }
     TWI_WriteByte(pI2C, *data++);
     count--;
@@ -212,6 +213,6 @@ void I2CDriver::writeNow(unsigned char *data,
   while(!TWI_TransferComplete(pI2C) && (++attempt < I2C_MAX_ATTEMPT));
   if (attempt < I2C_MAX_ATTEMPT)
   {
-    TRACE_ERROR("I2C transfer complete timeout\n\r");
+    TRACE_ERROR("I2C transfer complete timeout on trying to write\n\r");
   }
 }

@@ -14,18 +14,11 @@
 #define DEFAULT_MASTER_ADDRESS 0x0F
 #define DEFAULT_MASTER_ADDRESS_LEN 1
 
-#define I2C_FREQ_HZ 10000
-#define I2C_BUFFER_SIZE 3
+#define I2C_FREQ_HZ 1000
 #define I2C_MAX_ATTEMPT 50000
 
 #define TRANSFER_WRITE 0
 #define TRANSFER_READ 1
-
-typedef struct {
-  unsigned int id;
-  unsigned char wrtiteBuffer[I2C_BUFFER_SIZE];
-  unsigned char readBuffer[I2C_BUFFER_SIZE];
-} I2CNod;
 
 static const Pin TWI_pins[] = { PINS_TWI };
 
@@ -54,7 +47,7 @@ class I2CDriver
   public:
     I2CDriver();
     ~I2CDriver();
-    void configureMaster(void);
+    void configureMaster(unsigned int freq);
     // TODO: Slave mode
     //void initSlave(void); 
     void setAddress(unsigned char addr);

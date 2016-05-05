@@ -68,7 +68,7 @@ void PWMCDriver::init(void)
   PWMC_SetPeriod(PWM_LCD_BRI, MAX_DUTY_CYCLE);
   PWMC_SetDutyCycle(PWM_LCD_BRI, MIN_DUTY_CYCLE);*/
   // Configure interrupt on channel #1
-  AIC_ConfigureIT(AT91C_ID_PWMC, 0, PWMCDriver::driverISR);
+  AIC_ConfigureIT(AT91C_ID_PWMC, AT91C_AIC_PRIOR_LOWEST, PWMCDriver::driverISR);
   AIC_EnableIT(AT91C_ID_PWMC);
   PWMC_EnableChannelIt(PWM_SPEAKER);
   // Enable channel #1 and #2

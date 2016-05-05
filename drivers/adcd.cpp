@@ -26,13 +26,13 @@ ADCDriver::ADCDriver()
   ADC_EnableChannel(AT91C_BASE_ADC, ADC_TEMP);
   ADC_EnableChannel(AT91C_BASE_ADC, ADC_TRIM);
   ADC_EnableChannel(AT91C_BASE_ADC, ADC_MIC_IN);
-  AIC_ConfigureIT(AT91C_ID_ADC, 0, ADCDriver::driverISR);
+  AIC_ConfigureIT(AT91C_ID_ADC, AT91C_AIC_PRIOR_LOWEST, ADCDriver::driverISR);
   AIC_EnableIT(AT91C_ID_ADC);
 }
 
 ADCDriver::~ADCDriver()
 {
-
+  AIC_DisableIT(AT91C_ID_ADC);
 }
 
 void ADCDriver::driverISR(void)
