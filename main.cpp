@@ -28,7 +28,7 @@ static int ppin = 0;
 static const Pin Test_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 
-#define STEP_MAX 500
+#define STEP_MAX 1000
 #define STEP_MIN 10
 
 volatile unsigned int tcrc = 100;
@@ -100,7 +100,7 @@ void ConfigureTc(void)
     // Configure TC for a 4Hz frequency and trigger on RC compare
     TC_FindMckDivisor(100, BOARD_MCK, &div, &tcclks);
     TC_Configure(AT91C_BASE_TC0, tcclks | AT91C_TC_CPCTRG);
-    AT91C_BASE_TC0->TC_RC = (BOARD_MCK / div) / 100; // timerFreq / desiredFreq
+    AT91C_BASE_TC0->TC_RC = (BOARD_MCK / div) / 1000; // timerFreq / desiredFreq
 
     // Configure and enable interrupt on RC compare
     AIC_ConfigureIT(AT91C_ID_TC0, AT91C_AIC_PRIOR_LOWEST, ISR_Tc0);
@@ -164,6 +164,8 @@ int main(void)
   PIO_Configure(&Clock_pin, 1);
   ConfigureTc();
    
+  unsigned char tempmes;
+  
   TRACE_DEBUG("Main program end\n\r");
   // TODO: Make a nice standby mode instead of while(1)
   unsigned long mld = 0;
@@ -196,7 +198,7 @@ int main(void)
                   adc.getMicIn());
       // Start here
       
-      unsigned int temp = 46875 / (adc.getTrim() * 1000 / ADC_VREF);
+      unsigned int temp = 46875 / (adc.getTrim() * 10000 / ADC_VREF);
       tcrc = temp;
       
       if(go_right)
@@ -209,15 +211,17 @@ int main(void)
         message[0] |= (1 << 2);
         message[1] |= (1 << 2);
       };
-      
+      tempmes = message[0];
       
       if(sw1)
       {
+        tempmes = message[0];
         i2c.write(&message[0], 1);
         TRACE_DEBUG("I2C data write %X\n\r", message[0]);
       }
       else if(sw2)
       {
+        tempmes = message[1];
         i2c.write(&message[1], 1);
         TRACE_DEBUG("I2C data write %X\n\r", message[1]);
       }
@@ -226,6 +230,10 @@ int main(void)
         unsigned char dummy2 = 0;  
         i2c.read(&dummy2, 1);
         TRACE_DEBUG("I2C data read %X\n\r", dummy2);
+      }
+      else
+      {
+        i2c.write(&tempmes, 1);
       }
       
 
