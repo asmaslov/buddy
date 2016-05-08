@@ -45,36 +45,27 @@ static InterruptSource pSources[MAX_INTERRUPT_SOURCES];
 
 /// Number of currently defined interrupt sources.
 static unsigned int numSources;
-
-
-#ifdef __cplusplus
-extern "C" {
-#endif
   
-  extern unsigned char PIO_Configure(const Pin *list,
-                                     unsigned int size);
-  
-  extern void PIO_Set(const Pin *pin);
+extern unsigned char PIO_Configure(const Pin *list,
+                                   unsigned int size);
 
-  extern void PIO_Clear(const Pin *pin);
+extern void PIO_Set(const Pin *pin);
 
-  extern unsigned char PIO_Get(const Pin *pin);
+extern void PIO_Clear(const Pin *pin);
 
-  extern unsigned int PIO_GetISR(const Pin *pin);
+extern unsigned char PIO_Get(const Pin *pin);
 
-  extern unsigned char PIO_GetOutputDataStatus(const Pin *pin);
-  
-  extern void PIO_InitializeInterrupts(unsigned int priority);
+extern unsigned int PIO_GetISR(const Pin *pin);
 
-  extern void PIO_ConfigureIt(const Pin *pPin,
-                              void (*handler)(const Pin *));
+extern unsigned char PIO_GetOutputDataStatus(const Pin *pin);
 
-  extern void PIO_EnableIt(const Pin *pPin);
+extern void PIO_InitializeInterrupts(unsigned int priority);
 
-  extern void PIO_DisableIt(const Pin *pPin);
-  
-#ifdef __cplusplus
-}
-#endif
+extern void PIO_ConfigureIt(const Pin *pPin,
+                            void (*handler)(const Pin *));
+
+extern void PIO_EnableIt(const Pin *pPin);
+
+extern void PIO_DisableIt(const Pin *pPin);
 
 #endif //#ifndef PIO_H

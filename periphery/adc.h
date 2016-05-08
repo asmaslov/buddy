@@ -31,63 +31,55 @@
 // Track and hold Acquisition Time min (in ns)
 #define ADC_TRACK_HOLD_TIME_MIN 600
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+extern void ADC_Initialize (AT91S_ADC *pAdc,
+                            unsigned char idAdc,
+                            unsigned char trgEn,
+                            unsigned char trgSel,
+                            unsigned char sleepMode,
+                            unsigned char resolution,        
+                            unsigned int mckClock,
+                            unsigned int adcClock,
+                            unsigned int startupTime,
+                            unsigned int sampleAndHoldTime);
 
-  extern void ADC_Initialize (AT91S_ADC *pAdc,
-                              unsigned char idAdc,
-                              unsigned char trgEn,
-                              unsigned char trgSel,
-                              unsigned char sleepMode,
-                              unsigned char resolution,        
-                              unsigned int mckClock,
-                              unsigned int adcClock,
-                              unsigned int startupTime,
-                              unsigned int sampleAndHoldTime);
-  
-  extern unsigned int ADC_GetModeReg(AT91S_ADC *pAdc);
-  
-  extern void ADC_EnableChannel(AT91S_ADC *pAdc,
+extern unsigned int ADC_GetModeReg(AT91S_ADC *pAdc);
+
+extern void ADC_EnableChannel(AT91S_ADC *pAdc,
+                              unsigned int channel);
+
+extern void ADC_DisableChannel (AT91S_ADC *pAdc,
                                 unsigned int channel);
-  
-  extern void ADC_DisableChannel (AT91S_ADC *pAdc,
-                                  unsigned int channel);
-  
-  extern unsigned int ADC_GetChannelStatus(AT91S_ADC *pAdc);
-  
-  extern void ADC_StartConversion(AT91S_ADC *pAdc);
-  
-  extern void ADC_SoftReset(AT91S_ADC *pAdc);
-  
-  extern unsigned int ADC_GetLastConvertedData(AT91S_ADC *pAdc);
-  
-  extern unsigned int ADC_GetConvertedData(AT91S_ADC *pAdc,
-                                           unsigned int channel);
-  
-  extern void ADC_EnableIt(AT91S_ADC *pAdc,
-                           unsigned int flag);
-  
-  extern void ADC_EnableDataReadyIt(AT91S_ADC *pAdc);
-  
-  extern void ADC_DisableIt(AT91S_ADC *pAdc,
-                            unsigned int flag);
-  
-  extern unsigned int ADC_GetStatus(AT91S_ADC *pAdc);
-  
-  extern unsigned int ADC_GetInterruptMaskStatus(AT91S_ADC *pAdc);
-  
-  extern unsigned int ADC_IsInterruptMasked(AT91S_ADC *pAdc,
-                                            unsigned int flag);
-  
-  extern unsigned int ADC_IsStatusSet(AT91S_ADC *pAdc,
-                                      unsigned int flag);
-  
-  extern unsigned char ADC_IsChannelInterruptStatusSet(unsigned int adc_sr,
-                                                       unsigned int channel);
 
-#ifdef __cplusplus
-}
-#endif
+extern unsigned int ADC_GetChannelStatus(AT91S_ADC *pAdc);
+
+extern void ADC_StartConversion(AT91S_ADC *pAdc);
+
+extern void ADC_SoftReset(AT91S_ADC *pAdc);
+
+extern unsigned int ADC_GetLastConvertedData(AT91S_ADC *pAdc);
+
+extern unsigned int ADC_GetConvertedData(AT91S_ADC *pAdc,
+                                         unsigned int channel);
+
+extern void ADC_EnableIt(AT91S_ADC *pAdc,
+                         unsigned int flag);
+
+extern void ADC_EnableDataReadyIt(AT91S_ADC *pAdc);
+
+extern void ADC_DisableIt(AT91S_ADC *pAdc,
+                          unsigned int flag);
+
+extern unsigned int ADC_GetStatus(AT91S_ADC *pAdc);
+
+extern unsigned int ADC_GetInterruptMaskStatus(AT91S_ADC *pAdc);
+
+extern unsigned int ADC_IsInterruptMasked(AT91S_ADC *pAdc,
+                                          unsigned int flag);
+
+extern unsigned int ADC_IsStatusSet(AT91S_ADC *pAdc,
+                                    unsigned int flag);
+
+extern unsigned char ADC_IsChannelInterruptStatusSet(unsigned int adc_sr,
+                                                     unsigned int channel);
 
 #endif //#ifndef ADC_H

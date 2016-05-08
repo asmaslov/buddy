@@ -2,51 +2,60 @@
 #include "usart.h"
 #include "pmc.h"
 #include "aic.h"
+
 #include "assert.h"
 
-#include <iostream>
 #include <stdarg.h>
+#include <string.h>
 
-unsigned char USARTDriver::readBuffer[USART_BUFFER_SIZE];
-ParserFunc USARTDriver::parser;
+Comport *comport;
 
-USARTDriver::USARTDriver()
+static void comport_handler0(void)
 {
+  SANITY_CHECK(comport);
+  AIC_ClearIT(AT91C_ID_US0);
+  unsigned int status;
+  status = AT91C_BASE_US0->US_CSR;
+  if ((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
+  {
+    if(comport->parser)
+    {
+      comport->parser(comport->readBuffer, USART_BUFFER_SIZE);
+    }
+    USART_ReadBuffer(AT91C_BASE_US0, comport->readBuffer, USART_BUFFER_SIZE);
+  }
+  AIC_FinishIT();
+}
+
+static void comport_handler1(void)
+{
+  SANITY_CHECK(comport);
+}
+
+void comport_enable(Comport *cp)
+{
+  SANITY_CHECK(cp);
+  comport = cp;
   PIO_Configure(USART0_pins, PIO_LISTSIZE(USART0_pins)); 
   PMC_EnablePeripheral(AT91C_ID_US0);
 }
 
-USARTDriver::~USARTDriver()
+void comport_disable(void)
 {
   AIC_DisableIT(AT91C_ID_US0);
   AIC_DisableIT(AT91C_ID_US1);
   PMC_DisablePeripheral(AT91C_ID_US0);
 }
 
-void USARTDriver::defaultISR0(void)
+void comport_configure(unsigned char portnum,
+                       unsigned int speed)
 {
-  AIC_ClearIT(AT91C_ID_US0);
-  unsigned int status;
-  status = AT91C_BASE_US0->US_CSR;
-  if ((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
-  {
-    // TODO: Here we must copy bytes from buffer to parser
-    if(parser)
-    {
-      parser(readBuffer, USART_BUFFER_SIZE);
-    }
-    USART_ReadBuffer(AT91C_BASE_US0, readBuffer, USART_BUFFER_SIZE);
-  }
-  AIC_FinishIT();
-}
-
-void USARTDriver::configure(unsigned char portnum, unsigned int speed)
-{
+  SANITY_CHECK(comport);
   unsigned int mode, ipt;
   switch(portnum)
   {
     case USART0:
-      this->port = USART0;
+      comport->port = USART0;
       mode = AT91C_US_USMODE_NORMAL
            | AT91C_US_CLKS_CLOCK
            | AT91C_US_CHRL_8_BITS
@@ -54,34 +63,36 @@ void USARTDriver::configure(unsigned char portnum, unsigned int speed)
            | AT91C_US_NBSTOP_1_BIT
            | AT91C_US_CHMODE_NORMAL;
       USART_Configure(AT91C_BASE_US0, mode, speed, BOARD_MCK);
-      AIC_ConfigureIT(AT91C_ID_US0, AT91C_AIC_PRIOR_LOWEST, USARTDriver::defaultISR0);
+      AIC_ConfigureIT(AT91C_ID_US0, AT91C_AIC_PRIOR_LOWEST, comport_handler0);
       AIC_EnableIT(AT91C_ID_US0);
-      USART_SetTransmitterEnabled(AT91C_BASE_US0, true);
-      USART_SetReceiverEnabled(AT91C_BASE_US0, true);
-      USART_ReadBuffer(AT91C_BASE_US0, readBuffer, USART_BUFFER_SIZE);
+      USART_SetTransmitterEnabled(AT91C_BASE_US0, TRUE);
+      USART_SetReceiverEnabled(AT91C_BASE_US0, TRUE);
+      USART_ReadBuffer(AT91C_BASE_US0, comport->readBuffer, USART_BUFFER_SIZE);
       ipt = AT91C_US_ENDRX
           | AT91C_US_RXBUFF;
       USART_EnableIt(AT91C_BASE_US0, ipt);
       TRACE_DEBUG("USART0 enabled\n\r");
     break;
     case USART1:
-      this->port = USART1;
+      comport->port = USART1;
       TRACE_DEBUG("USART1 is not configured yet\n\r");
     break;
     default:
-      TRACE_ERROR("USART%d does not exist\n\r", port);
+      TRACE_ERROR("USART%d does not exist\n\r", portnum);
   }
 }
 
-void USARTDriver::setParserFunc(ParserFunc pfunc)
+void comport_setParserFunc(ParserFunc pfunc)
 {
+  SANITY_CHECK(comport);
   SANITY_CHECK(pfunc);
-  parser = pfunc;
+  comport->parser = pfunc;
 }
 
-void USARTDriver::uputchar(char c)
+void comport_uputchar(char c)
 {
-  switch(this->port)
+  SANITY_CHECK(comport);
+  switch(comport->port)
   {
     case USART0:
       USART_Write(AT91C_BASE_US0, c, TIMEOUT);
@@ -92,7 +103,7 @@ void USARTDriver::uputchar(char c)
   }
 }
 
-void USARTDriver::uprintf(char *str, ...)
+void comport_uprintf(char *str, ...)
 {
   unsigned int i = 0;
   va_list arg;
@@ -103,13 +114,14 @@ void USARTDriver::uprintf(char *str, ...)
   va_end(arg);
   while(buffer[i] != '\0')
   {
-    uputchar(buffer[i]);
+    comport_uputchar(buffer[i]);
     i++;
   }
 }
 
-void USARTDriver::udmaprintf(char *str, ...)
+void comport_udmaprintf(char *str, ...)
 {
+  SANITY_CHECK(comport);
   unsigned int len;
   va_list arg;
   va_start(arg, str);
@@ -117,7 +129,7 @@ void USARTDriver::udmaprintf(char *str, ...)
   memset(&buffer, 0, sizeof(buffer));
   len = vsprintf(buffer, str, arg);
   va_end(arg);
-  switch(this->port)
+  switch(comport->port)
   {
     case USART0:
       USART_WriteBuffer(AT91C_BASE_US0, buffer, len);
@@ -128,9 +140,10 @@ void USARTDriver::udmaprintf(char *str, ...)
   }
 }
 
-unsigned char USARTDriver::ugetchar(void)
+unsigned char comport_ugetchar(void)
 {
-  switch(this->port)
+  SANITY_CHECK(comport);
+  switch(comport->port)
   {
     case USART0:
       return USART_Read(AT91C_BASE_US0, TIMEOUT);

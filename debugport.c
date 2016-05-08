@@ -1,21 +1,17 @@
 #include "debugport.h"
 #include "dbgu.h"
-#include "trace.h"
 
-#include <iostream>
+#include "assert.h"
+
 #include <stdarg.h>
+#include <string.h>
 
-DebugPort::DebugPort()
+void dbginit(void)
 {
   TRACE_CONFIGURE(DBGU_STANDARD, 115200, BOARD_MCK);
 }
 
-DebugPort::~DebugPort()
-{
-
-}
-
-void DebugPort::dbgprintf(char *str, ...)
+void dbgprintf(char *str, ...)
 {
   va_list arg;
   va_start(arg, str);
@@ -31,7 +27,7 @@ void DebugPort::dbgprintf(char *str, ...)
   }
 }
 
-void DebugPort::dbgputchar(char c)
+void dbgputchar(char c)
 {
   DBGU_PutChar(c);
 }

@@ -11,13 +11,10 @@ static const Pin DBGU_pins[] = {
   PINS_DBGU,
 };
 
-class DebugPort
-{
-  public:
-    DebugPort();
-    ~DebugPort();
-    void dbgprintf(char *str, ...);
-    void dbgputchar(char c);
-};
+void dbginit(void);
+
+void dbgprintf(char *str, ...);
+
+void dbgputchar(char c);
 
 #endif //#ifndef DEBUGPORT_H

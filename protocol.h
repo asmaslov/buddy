@@ -4,7 +4,7 @@
 #define PACKET_LEN 10
 
 // Unit address range [0x00 .. 0x7F]
-// Pad address range  [0x80 .. 0xFF]
+//  Pad address range [0x80 .. 0xFF]
 
 #define DEFAULT_UNIT_ADDR 0x0F
 #define DEFAULT_PAD_ADDR 0x8F
@@ -85,8 +85,7 @@ typedef union {
   struct {
     unsigned char unit;
     unsigned char type;
-    // TODO:
-    // Create 6 more bytes of data
+    unsigned char data[6];
     unsigned char crcH;
     unsigned char crcL;
   };  

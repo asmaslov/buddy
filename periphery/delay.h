@@ -1,18 +1,10 @@
 #ifndef DELAY_H
 #define DELAY_H
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+extern void delayLoop(unsigned int loop);
 
-  void delayLoop(unsigned int loop);
+extern void delayMs(unsigned int time_ms);
 
-  void delayMs(unsigned int time_ms);
-
-  void delayUs(unsigned int time_us);
-
-#ifdef __cplusplus
-}
-#endif
+extern void delayUs(unsigned int time_us);
 
 #endif //#ifndef DELAY_H

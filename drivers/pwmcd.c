@@ -3,56 +3,49 @@
 #include "pmc.h"
 #include "aic.h"
 
-unsigned int PWMCDriver::count;
-unsigned int PWMCDriver::duty;
-unsigned char PWMCDriver::fadeIn;
+#include "assert.h"
 
-PWMCDriver::PWMCDriver()
-{
-  count = 0;
-  duty = MIN_DUTY_CYCLE;
-  fadeIn = 1;
-  PIO_Configure(PWMC_pins, PIO_LISTSIZE(PWMC_pins));
-  PMC_EnablePeripheral(AT91C_ID_PWMC);
-}
+PWM *pwmLocal;
 
-PWMCDriver::~PWMCDriver()
+static void pwm_handler(void)
 {
-  PMC_DisablePeripheral(AT91C_ID_PWMC);
-}
-
-void PWMCDriver::driverISR(void)
-{
+  SANITY_CHECK(pwmLocal);
   if ((AT91C_BASE_PWMC->PWMC_ISR & AT91C_PWMC_CHID0) == AT91C_PWMC_CHID0)
   {
-    count++;
-    if (count == (PWM_FREQUENCY / (MAX_DUTY_CYCLE - MIN_DUTY_CYCLE)))
+    pwmLocal->count++;
+    if (pwmLocal->count == (PWM_FREQUENCY / (MAX_DUTY_CYCLE - MIN_DUTY_CYCLE)))
     {
-      if (fadeIn)
+      if (pwmLocal->fadeIn)
       {
-        duty++;
-        if (duty == MAX_DUTY_CYCLE)
+        pwmLocal->duty++;
+        if (pwmLocal->duty == MAX_DUTY_CYCLE)
         {
-          fadeIn = 0;
+          pwmLocal->fadeIn = 0;
         }
       }
       else
       { 
-        duty--;
-        if (duty == MIN_DUTY_CYCLE)
+        pwmLocal->duty--;
+        if (pwmLocal->duty == MIN_DUTY_CYCLE)
         {
-          fadeIn = 1;
+          pwmLocal->fadeIn = 1;
         }
       }
-      count = 0;
-      PWMC_SetDutyCycle(PWM_SPEAKER, duty);
-      //PWMC_SetDutyCycle(PWM_LCD_BRI, duty);
+      pwmLocal->count = 0;
+      PWMC_SetDutyCycle(PWM_SPEAKER, pwmLocal->duty);
     }
   }
 }
 
-void PWMCDriver::init(void)
+void pwm_enable(PWM *p)
 {
+  SANITY_CHECK(p);
+  pwmLocal = p;
+  pwmLocal->count = 0;
+  pwmLocal->duty = MIN_DUTY_CYCLE;
+  pwmLocal->fadeIn = 1;
+  PIO_Configure(PWMC_pins, PIO_LISTSIZE(PWMC_pins));
+  PMC_EnablePeripheral(AT91C_ID_PWMC);
   // Settings:
   // - 100kHz PWM period (PWM_FREQUENCY)
   // - 1s rise/fall time for the LED intensity
@@ -68,10 +61,15 @@ void PWMCDriver::init(void)
   PWMC_SetPeriod(PWM_LCD_BRI, MAX_DUTY_CYCLE);
   PWMC_SetDutyCycle(PWM_LCD_BRI, MIN_DUTY_CYCLE);*/
   // Configure interrupt on channel #1
-  AIC_ConfigureIT(AT91C_ID_PWMC, AT91C_AIC_PRIOR_LOWEST, PWMCDriver::driverISR);
+  AIC_ConfigureIT(AT91C_ID_PWMC, AT91C_AIC_PRIOR_LOWEST, pwm_handler);
   AIC_EnableIT(AT91C_ID_PWMC);
   PWMC_EnableChannelIt(PWM_SPEAKER);
   // Enable channel #1 and #2
   PWMC_EnableChannel(PWM_SPEAKER);
   //PWMC_EnableChannel(PWM_LCD_BRI);
+}
+
+void pwm_disable(void)
+{
+  PMC_DisablePeripheral(AT91C_ID_PWMC);
 }

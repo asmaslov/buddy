@@ -21,27 +21,25 @@ static const Pin ADC_pins[] = {
   PINS_ADC,
 };
 
-class ADCDriver
-{
-  private:
-    unsigned int timeout;
-    static unsigned int temp;
-    static unsigned int trim;
-    static unsigned int micIn;
-      
-  private:
-    static void driverISR(void);
-    unsigned int convertHex2mV(unsigned int valueToConvert);
-  
-  public:
-    ADCDriver();
-    ~ADCDriver();
-    void start(void);
-    
-  public:  
-    unsigned int getTemp(void);
-    unsigned int getTrim(void);
-    unsigned int getMicIn(void);
-};
+typedef struct _ADC {
+  unsigned int timeout;
+  unsigned int temp;
+  unsigned int trim;
+  unsigned int micIn;
+} ADC;
+
+void adc_enable(ADC *a);
+
+void adc_disable(void);
+
+unsigned int adc_convertHex2mV(unsigned int valueToConvert);
+
+void adc_work(void);
+
+unsigned int adc_getTemp(void);
+
+unsigned int adc_getTrim(void);
+
+unsigned int adc_getMicIn(void);
 
 #endif //#ifndef ADCD_H

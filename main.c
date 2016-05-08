@@ -1,41 +1,38 @@
-#include "debugport.h"
-#include "trace.h"
+#include "assert.h"
 #include "adcd.h"
 #include "pwmcd.h"
 
 #include "pio.h"
 
-#include "tc.h"
-#include "aic.h"
+//#include "tc.h"
+//#include "aic.h"
 
 #include "lcd.h"
-#include "commander.h"
+#include "usartd.h"
 
+#include "comvault.h"
+#include "commander.h"
 
 #include "delay.h"
 
 #include <stdio.h>
-#include <iostream>
 
-#define MAIN_LOOP_DELAY 1000000
+#define MAIN_LOOP_SLOW_DELAY 100000
+#define MAIN_LOOP_FAST_DELAY 100
 
-static int ppin = 0;
 static const Pin Test_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 
-#define STEP_MAX 1000
-#define STEP_MIN 10
+#define STEP_MAX 1400
+#define STEP_MIN 400
 
 volatile unsigned int tcrc = 100;
 volatile unsigned int step = STEP_MIN;
 
-
-volatile bool go_right = true;
-volatile bool go_left = false;
+volatile unsigned char go_right = TRUE;
+volatile unsigned char go_left = FALSE;
   
-
-
-void ISR_Tc0(void)
+/*void ISR_Tc0(void)
 {
     // Clear status bit to acknowledge interrupt
     unsigned int dummy;
@@ -51,14 +48,14 @@ void ISR_Tc0(void)
     if(ppin == 1)
     {
       ppin = 0;
-      PIO_Clear(&Test_pin);
       PIO_Clear(&Clock_pin);
+      PIO_Clear(&Test_pin);
     }
     else
     {
       ppin = 1;
-      PIO_Set(&Test_pin);
       PIO_Set(&Clock_pin);
+      PIO_Set(&Test_pin);
     }
 
     if(go_right)
@@ -66,20 +63,19 @@ void ISR_Tc0(void)
       step++;
       if(step > STEP_MAX)
       {
-        go_right = false;
-        go_left = true;
+        go_right = FALSE;
+        go_left = TRUE;
       }
     }
-    else if(go_left)
+    if(go_left)
     {
       step--;
       if(step < STEP_MIN)
       {
-        go_right = true;
-        go_left = false;
+        go_right = TRUE;
+        go_left = FALSE;
       }
-    }
-  
+    }  
 }
 
 
@@ -97,12 +93,12 @@ void ConfigureTc(void)
     AT91C_BASE_TC0->TC_RC = (BOARD_MCK / div) / 1000; // timerFreq / desiredFreq
 
     // Configure and enable interrupt on RC compare
-    AIC_ConfigureIT(AT91C_ID_TC0, AT91C_AIC_PRIOR_LOWEST, ISR_Tc0);
+    AIC_ConfigureIT(AT91C_ID_TC0, AT91C_AIC_PRIOR_HIGHEST, ISR_Tc0);
     AT91C_BASE_TC0->TC_IER = AT91C_TC_CPCS;
     AIC_EnableIT(AT91C_ID_TC0);
 
     TC_Start(AT91C_BASE_TC0);
-}
+}*/
 
 /*void sw1ISR_Bp1(void)
 {
@@ -161,14 +157,16 @@ void ISR_Bp2(void)
     }
 }*/
 
-
 int main(void)
 {   
   TRACE_INFO("Firmware version 0.0.1 unstable\n\r");
   TRACE_DEBUG("Compiled: %s %s \n\r", __DATE__, __TIME__);
-  TRACE_DEBUG("Main program start\n\r");
+  TRACE_DEBUG("Program start\n\r");
+  
+  // Enable buttons and joystick
   static const Pin Buttons_pins[] = { PINS_PUSHBUTTONS };
   PIO_Configure(Buttons_pins, PIO_LISTSIZE(Buttons_pins));
+  unsigned char sw1, sw2;
   
   /*PIO_InitializeInterrupts(AT91C_AIC_PRIOR_LOWEST);
   PIO_ConfigureIt(&pinPB1, (void (*)(const Pin *)) ISR_Bp1);
@@ -176,47 +174,72 @@ int main(void)
   PIO_EnableIt(&pinPB1);
   PIO_EnableIt(&pinPB2);*/
   
-  bool sw1, sw2;
- 
   static const Pin Joystick_pins[] = { PINS_JOYSTICK };
   PIO_Configure(Joystick_pins, PIO_LISTSIZE(Joystick_pins));
-  bool joyup, joydown, joyleft, joyright, joysw;
-   
-  bool enable = true;
-
+  unsigned char joyup, joydown, joyleft, joyright, joysw;
+  // ---
+  
+  // Create and enable periphery modules
+  ADC adc;
+  adc_enable(&adc);
+  adc_work();
+  unsigned int temperature, trimmer, microphone;  
+  
+  Comport comport;
+  
+  PWM pwm;
+  pwm_enable(&pwm);   
+  // ---
+  
+  // User hello
   delayMs(100);
   LCD_init();
   delayUs(100);
   LCDSettings(); 
   delayUs(100);
   LCDWrite130x130bmp();
-  delayUs(100);
+  delayMs(500);
+  // ---
+
+  // Create and enable main logic modules
+  CommandVault commandVault;
+  commandVault_init(&commandVault);
   
-  CommandVault cmdVault;
-
-  Commander cmd(&cmdVault);
-  cmd.start();
-      
-  ADCDriver adc;
-  delayMs(100);
-  adc.start();
-
-  /*PWMCDriver pwm;
-  pwm.init();*/
+  Commander commander;
+  commander_init(&commander, &commandVault, &comport);
+  // ---
 
   PIO_Configure(&Test_pin, 1);
   PIO_Configure(&Clock_pin, 1);
-  ConfigureTc();
+  //ConfigureTc();
      
-  TRACE_DEBUG("Main program end\n\r");
+  TRACE_DEBUG("Initialization complete\n\r");
+  
   // TODO: Make a nice standby mode instead of while(1)
-  unsigned long mld = 0;
+  unsigned long fastTick = 0;
+  unsigned long slowTick = 0;
+  unsigned char looptrace = FALSE;
+  
+  // Main interrupt-based logic launch
+  commander_start();
+  
   while(1)
   {
-    mld++;
-    if((mld > MAIN_LOOP_DELAY) && enable)
+    // Fast and furious
+    fastTick++;
+    if(fastTick > MAIN_LOOP_FAST_DELAY)
     {
-      mld = 0;
+      fastTick = 0;        
+      commandVault_lock();
+      if(go_right)
+      {
+        commandVault.requests.testreq &=~(1 << 2);
+      }
+      if(go_left)
+      {
+        commandVault.requests.testreq |= (1 << 2);
+      }
+      commandVault_unlock();
       sw1 = !PIO_Get(&Buttons_pins[PUSHBUTTON_BP1]);
       sw2 = !PIO_Get(&Buttons_pins[PUSHBUTTON_BP2]);
       joyup = !PIO_Get(&Joystick_pins[JOYSTICK_UP]);
@@ -224,6 +247,33 @@ int main(void)
       joyleft = !PIO_Get(&Joystick_pins[JOYSTICK_LEFT]);
       joyright = !PIO_Get(&Joystick_pins[JOYSTICK_RIGHT]);
       joysw = !PIO_Get(&Joystick_pins[JOYSTICK_BUTTON]);
+      temperature = adc_getTemp();
+      trimmer = adc_getTrim() * 100 / ADC_VREF;
+      microphone = adc_getMicIn();
+      adc_work();
+      if(sw1 && sw2 && joyup)
+      {
+        if(!looptrace)
+        {
+          TRACE_DEBUG("Monitoring enabled\n\r");
+        }
+        looptrace = TRUE;
+      }
+      if(sw1 && sw2 && joydown)
+      {
+        if(looptrace)
+        {
+          TRACE_DEBUG("Monitoring disabled\n\r");
+        }
+        looptrace = FALSE;
+      }
+    }
+    
+    // Slow and happy
+    slowTick++;
+    if((slowTick > MAIN_LOOP_SLOW_DELAY) && looptrace)
+    {
+      slowTick = 0;
       TRACE_DEBUG("----------------------------------------------------------------\n\r");
       TRACE_DEBUG("| SW1 | SW2 | JSU | JSD | JSL | JSR | JSS | TEMP | TRIM |  MIC |\n\r");
       TRACE_DEBUG("|  %c  |  %c  |  %c  |  %c  |  %c  |  %c  |  %c  | %4d |  %3d | %4d |\n\r",
@@ -234,44 +284,34 @@ int main(void)
                   joyleft ? '+' : '-',
                   joyright ? '+' : '-',
                   joysw ? '+' : '-',
-                  adc.getTemp(),
-                  adc.getTrim() * 100 / ADC_VREF,
-                  adc.getMicIn());
+                  temperature, trimmer, microphone);
+
       // Start here
       
-      unsigned int temp = 46875 / (adc.getTrim() * 10000 / ADC_VREF);
+      unsigned int temp = 46875 / (adc_getTrim() * 10000 / ADC_VREF);
       tcrc = temp;
-      
-      if(go_right)
-      {
-        cmdVault.requests.testreq &=~(1 << 2);
-      }
-      else if(go_left)
-      {
-        cmdVault.requests.testreq |= (1 << 2);
-      };
-      
+
       if(sw1)
       {
-        cmdVault.requests.testreq |= (1 << 0);
-        cmdVault.requests.testreq |= (1 << 1);        
+        commandVault.requests.testreq |= (1 << 0);
+        commandVault.requests.testreq |= (1 << 1);        
       }
       else if(sw2)
       {
-        cmdVault.requests.testreq &=~(1 << 0);
-        cmdVault.requests.testreq &=~(1 << 1);
+        commandVault.requests.testreq &=~(1 << 0);
+        commandVault.requests.testreq &=~(1 << 1);
       }
       else if(joysw)
       {
-        TRACE_DEBUG("I2C data read %X\n\r", cmdVault.status.teststat);
+        TRACE_DEBUG("I2C data read %X\n\r", commandVault.status.teststat);
       }
 
-      if(cmdVault.requests.buttonA)
+      if(commandVault.requests.buttonA)
       {
         TRACE_DEBUG("Button A\n\r");
       }
       
-      if(cmdVault.requests.buttonB)
+      if(commandVault.requests.buttonB)
       {
         TRACE_DEBUG("Button B\n\r");
       }

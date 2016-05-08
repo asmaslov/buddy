@@ -9,19 +9,9 @@
 
 typedef void (*AsyncCallback)(void);
 
-class Async
-{
-  private:
-    unsigned char status;
-
-  public:
-    Async();
-    ~Async();
-    AsyncCallback callback;
-    unsigned char finished(void);
-    unsigned char busy(void);
-    void setPending(void);
-    void setDone(void);
-};
+typedef struct _Async {
+  unsigned char status;
+  AsyncCallback callback;
+} Async;
 
 #endif //#ifndef ASYNC_H

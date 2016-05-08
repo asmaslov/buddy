@@ -10,49 +10,41 @@
 // All interrupts
 #define AT91C_US_AIR 0xF3FFF
 
-#ifdef __cplusplus
-extern "C" {
-#endif
+extern void USART_Configure(AT91S_USART *usart,
+                            unsigned int mode,
+                            unsigned int baudrate,
+                            unsigned int masterClock);
 
-  extern void USART_Configure(AT91S_USART *usart,
-                              unsigned int mode,
-                              unsigned int baudrate,
-                              unsigned int masterClock);
-  
-  extern void USART_EnableIt(AT91S_USART *usart,
-                             unsigned char interrupt);
-  
-  extern void USART_DisableIt(AT91S_USART *usart,
-                              unsigned char interrupt);
+extern void USART_EnableIt(AT91S_USART *usart,
+                           unsigned char interrupt);
 
-  extern void USART_SetTransmitterEnabled(AT91S_USART *usart,
-                                          unsigned char enabled);
+extern void USART_DisableIt(AT91S_USART *usart,
+                            unsigned char interrupt);
 
-  extern void USART_SetReceiverEnabled(AT91S_USART *usart,
-                                       unsigned char enabled);
+extern void USART_SetTransmitterEnabled(AT91S_USART *usart,
+                                        unsigned char enabled);
 
-  extern void USART_Write(AT91S_USART *usart,
-                          unsigned short data, 
-                          volatile unsigned int timeout);
+extern void USART_SetReceiverEnabled(AT91S_USART *usart,
+                                     unsigned char enabled);
 
-  extern unsigned char USART_WriteBuffer(AT91S_USART *usart,
-                                         void *buffer,
-                                         unsigned int size);
+extern void USART_Write(AT91S_USART *usart,
+                        unsigned short data, 
+                        volatile unsigned int timeout);
 
-  extern unsigned short USART_Read(AT91S_USART *usart, 
-                                   volatile unsigned int timeout);
- 
-  extern unsigned char USART_ReadBuffer(AT91S_USART *usart,
-                                        void *buffer,
-                                        unsigned int size);
+extern unsigned char USART_WriteBuffer(AT91S_USART *usart,
+                                       void *buffer,
+                                       unsigned int size);
 
-  extern unsigned char USART_IsDataAvailable(AT91S_USART *usart);
+extern unsigned short USART_Read(AT91S_USART *usart, 
+                                 volatile unsigned int timeout);
 
-  extern void USART_SetIrdaFilter(AT91S_USART *usart,
-                                  unsigned char filter);
+extern unsigned char USART_ReadBuffer(AT91S_USART *usart,
+                                      void *buffer,
+                                      unsigned int size);
 
-#ifdef __cplusplus
-}
-#endif
+extern unsigned char USART_IsDataAvailable(AT91S_USART *usart);
+
+extern void USART_SetIrdaFilter(AT91S_USART *usart,
+                                unsigned char filter);
 
 #endif //#ifndef USART_H

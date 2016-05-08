@@ -1,12 +1,12 @@
 #include "tcd.h"
 #include "tc.h"
 
-TCDriver::TCDriver()
+void TCDriver_load(void)
 {
   
 }
 
-TCDriver::~TCDriver()
+void TCDriver_unload(void)
 {
 
 }

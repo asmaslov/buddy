@@ -1,7 +1,6 @@
 #include "twi.h"
 #include "smplmath.h"
 #include "assert.h"
-#include "trace.h"
 
 void TWI_ConfigureMaster(AT91S_TWI *pTwi,
                          unsigned int twck,
@@ -12,9 +11,6 @@ void TWI_ConfigureMaster(AT91S_TWI *pTwi,
   unsigned char ok = 0;
   TRACE_DEBUG("TWI_ConfigureMaster()\n\r");
   SANITY_CHECK(pTwi);
-  #ifdef AT91C_TWI_SVEN
-    pTwi->TWI_CR = AT91C_TWI_SVEN;
-  #endif
   // Reset the TWI
   pTwi->TWI_CR = AT91C_TWI_SWRST;
   pTwi->TWI_RHR;
@@ -43,31 +39,6 @@ void TWI_ConfigureMaster(AT91S_TWI *pTwi,
   pTwi->TWI_CWGR = 0;
   pTwi->TWI_CWGR = (ckdiv << 16) | (cldiv << 8) | cldiv;
 }
-
-#ifdef AT91C_TWI_SVEN
-  void TWI_ConfigureSlave(AT91S_TWI *pTwi,
-                          unsigned char slaveAddress)
-  {
-    unsigned int i;
-    // TWI software reset
-    pTwi->TWI_CR = AT91C_TWI_SWRST;
-    pTwi->TWI_RHR;
-    // Wait at least 10 ms
-    // TODO: Make honest delay_ms(10)
-    for (i=0; i < 1000000; i++);
-    // TWI Slave Mode Disabled, TWI Master Mode Disabled
-    pTwi->TWI_CR = AT91C_TWI_SVDIS | AT91C_TWI_MSDIS;
-    // Slave Address
-    pTwi->TWI_SMR = 0;
-    pTwi->TWI_SMR = (slaveAddress << 16) & AT91C_TWI_SADR;
-    // SVEN: TWI Slave Mode Enabled
-    pTwi->TWI_CR = AT91C_TWI_SVEN;
-    // Wait at least 10 ms
-    // TODO: Make honest delay_ms(10)
-    for (i=0; i < 1000000; i++);
-    ASSERT( (pTwi->TWI_CR & AT91C_TWI_SVDIS)!=AT91C_TWI_SVDIS, "Problem slave mode");
-  }
-#endif
 
 void TWI_Stop(AT91S_TWI *pTwi)
 {

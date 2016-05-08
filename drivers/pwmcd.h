@@ -19,20 +19,13 @@
 
 static const Pin PWMC_pins[] = { PIN_PWMC_PWM0, PIN_PWMC_PWM2 };
 
-class PWMCDriver
-{
-  private:
-    static unsigned int count;
-    static unsigned int duty;
-    static unsigned char fadeIn;
+typedef struct _PWM {
+  unsigned int count;
+  unsigned int duty;
+  unsigned char fadeIn;  
+} PWM;
     
-  private:
-    static void driverISR(void);
-  
-  public:
-    PWMCDriver();
-    ~PWMCDriver();
-    void init(void);
-};
+void pwm_enable(PWM *p);
+void pwm_disable(void);
 
 #endif //#ifndef PWMCD_H

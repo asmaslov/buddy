@@ -9,7 +9,6 @@
 // Master clock frequency
 #define BOARD_MCK 48000000
 
-
 // Chip has a UDP controller
 #define BOARD_USB_UDP
 // Indicates the D+ pull-up is always connected

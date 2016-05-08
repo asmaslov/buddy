@@ -252,8 +252,7 @@ void PIO_ConfigureIt(const Pin *pPin,
   InterruptSource *pSource;
   TRACE_DEBUG("PIO_ConfigureIt()\n\r");
   SANITY_CHECK(pPin);
-  ASSERT(numSources < MAX_INTERRUPT_SOURCES,
-         "-F- PIO_ConfigureIt: Increase MAX_INTERRUPT_SOURCES\n\r");
+  ASSERT(numSources < MAX_INTERRUPT_SOURCES, "-F- PIO_ConfigureIt: Increase MAX_INTERRUPT_SOURCES\n\r");
   // Define new source
   TRACE_DEBUG("PIO_ConfigureIt: Defining new source #%d.\n\r",  numSources);
   pSource = &(pSources[numSources]);
@@ -269,13 +268,13 @@ void PIO_EnableIt(const Pin *pPin)
   #ifndef NOASSERT
     unsigned int i = 0;
     unsigned char found = 0;
-    while ((i < numSources) && !found) {
-
-        if (pSources[i].pPin == pPin) {
-
-            found = 1;
-        }
-        i++;
+    while ((i < numSources) && !found)
+    {
+      if (pSources[i].pPin == pPin)
+      {
+        found = 1;
+      }
+      i++;
     }
     ASSERT(found, "-F- PIO_EnableIt: Interrupt source has not been configured\n\r");
   #endif
@@ -283,17 +282,9 @@ void PIO_EnableIt(const Pin *pPin)
   pPin->pio->PIO_IER = pPin->mask;
 }
 
-//------------------------------------------------------------------------------
-/// Disables a given interrupt source, with no added side effects.
-/// \param pPin  Interrupt source to disable.
-//------------------------------------------------------------------------------
 void PIO_DisableIt(const Pin *pPin)
 {
-    SANITY_CHECK(pPin);
-
-    TRACE_DEBUG("PIO_DisableIt()\n\r");
-
-    pPin->pio->PIO_IDR = pPin->mask;
+  SANITY_CHECK(pPin);
+  TRACE_DEBUG("PIO_DisableIt()\n\r");
+  pPin->pio->PIO_IDR = pPin->mask;
 }
-
-

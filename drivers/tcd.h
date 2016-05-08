@@ -3,11 +3,7 @@
 
 #include "pio.h"
 
-class TCDriver
-{
-  public:
-    TCDriver();
-    ~TCDriver();
-};
+void TCDriver_load(void);
+void TCDriver_unload(void);
 
 #endif //#ifndef TCD_H

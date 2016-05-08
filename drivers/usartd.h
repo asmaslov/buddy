@@ -36,26 +36,27 @@ static const Pin USART1_pins[] = {
 
 typedef void (*ParserFunc)(unsigned char *buf, int size);
 
-class USARTDriver
-{
-  private:
-    unsigned char port;
-    static unsigned char readBuffer[USART_BUFFER_SIZE];
-    
-  private:
-    static ParserFunc parser;
-    static void defaultISR0(void);
-    
-  public:
-    USARTDriver();
-    ~USARTDriver();
-    void configure(unsigned char portnum,
-                   unsigned int speed = 115200);
-    void setParserFunc(ParserFunc pfunc);
-    void uputchar(char c);
-    void uprintf(char *str, ...);
-    void udmaprintf(char *str, ...);
-    unsigned char ugetchar(void);
-};
+typedef struct _Comport {
+  unsigned char port;
+  unsigned char readBuffer[USART_BUFFER_SIZE];
+  ParserFunc parser;
+} Comport;
+
+void comport_enable(Comport *cp);
+
+void comport_disable(void);
+
+void comport_configure(unsigned char portnum,
+                       unsigned int speed);
+
+void comport_setParserFunc(ParserFunc pfunc);
+
+void comport_uputchar(char c);
+
+void comport_uprintf(char *str, ...);
+
+void comport_udmaprintf(char *str, ...);
+
+unsigned char comport_ugetchar(void);
 
 #endif //#ifndef USARTD_H
