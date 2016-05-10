@@ -61,12 +61,7 @@ void i2c_enable(I2c *i)
   i2cLocal->transfer.async->status = ASYNC_STATUS_DONE;
   i2cLocal->iaddress = 0;
   i2cLocal->iaddresslen = 0;
-  PIO_Configure(TWI_pins, PIO_LISTSIZE(TWI_pins));
-  
-  // Magic here
-  AT91C_BASE_PIOA->PIO_MDER = BIT10 | BIT11;
-  AT91C_BASE_PIOA->PIO_PPUDR = BIT10 | BIT11;
-    
+  PIO_Configure(TWI_pins, PIO_LISTSIZE(TWI_pins));    
   PMC_EnablePeripheral(AT91C_ID_TWI);
 }
 
@@ -231,7 +226,7 @@ unsigned char i2c_writeNow(unsigned char *data,
   }
   attempt = 0;
   while(!TWI_TransferComplete(AT91C_BASE_TWI) && (++attempt < I2C_MAX_ATTEMPT));
-  if (attempt < I2C_MAX_ATTEMPT)
+  if (attempt == I2C_MAX_ATTEMPT)
   {
     TRACE_ERROR("I2C transfer complete timeout on trying to write\n\r");
     status = FALSE;

@@ -52,8 +52,7 @@ void pwm_enable(PWM *p)
   // Set clock A to run at 100kHz * MAX_DUTY_CYCLE (clock B is not used)
   PWMC_ConfigureClocks(PWM_FREQUENCY * MAX_DUTY_CYCLE, 0, BOARD_MCK);
   // Configure PWMC channel for LED0 (left-aligned)
-  //PWMC_ConfigureChannel(PWM_SPEAKER, AT91C_PWMC_CPRE_MCKA, 0, 0);
-  PWMC_ConfigureChannel(PWM_SPEAKER, AT91C_PWMC_CPRE_MCKA, AT91C_PWMC_CALG, AT91C_PWMC_CPOL);
+  PWMC_ConfigureChannel(PWM_SPEAKER, AT91C_PWMC_CPRE_MCKA, 0, 0);
   PWMC_SetPeriod(PWM_SPEAKER, MAX_DUTY_CYCLE);
   PWMC_SetDutyCycle(PWM_SPEAKER, MIN_DUTY_CYCLE);
   // Configure PWMC channel for LED1 (center-aligned, inverted polarity)
@@ -72,4 +71,9 @@ void pwm_enable(PWM *p)
 void pwm_disable(void)
 {
   PMC_DisablePeripheral(AT91C_ID_PWMC);
+}
+
+void pwm_beep(unsigned int freq, unsigned int ms)
+{
+
 }

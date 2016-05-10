@@ -43,33 +43,31 @@ static void commander_ticker(void)
                         commanderLocal->nods[commanderLocal->currentNodIdx].readBufferSize))
         {
           commanderLocal->nods[commanderLocal->currentNodIdx].connected = FALSE;
-          TRACE_DEBUG("Nod id %d not connected\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
+          TRACE_DEBUG("Nod id %d not connected on trying to read\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
         }
         commanderLocal->nods[commanderLocal->currentNodIdx].dir = TRANSFER_WRITE;
-        // TODO :
-        // Copy values from buffer to vault according to protocol
-        // If vault is busy on writing -> don't copy
         if(!commandVault_locked())
         {
+          // TODO :
+          // Copy values from buffer to vault according to protocol
           commandVaultCommander->status.teststat = commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer[0];
         }
       }
       else
       {
         i2c_setAddress(commanderLocal->nods[commanderLocal->currentNodIdx].id);
-        // TODO :
-        // Copy command from vault to buffer according to protocol
         // If vault is busy on reading -> don't copy, use old values
         if(!commandVault_locked())
         {
+          // TODO :
+          // Copy command from vault to buffer according to protocol
           commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer[0] = commandVaultCommander->requests.testreq;
         }
-        // -----
         if(!i2c_writeNow(commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer,
                          commanderLocal->nods[commanderLocal->currentNodIdx].writeBufferSize))
         {
           commanderLocal->nods[commanderLocal->currentNodIdx].connected = FALSE;
-          TRACE_DEBUG("Nod id %d not connected\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
+          TRACE_DEBUG("Nod id %d not connected on trying to write\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
         }
         commanderLocal->nods[commanderLocal->currentNodIdx].dir = TRANSFER_READ;
         commander_nextnod();
@@ -77,7 +75,16 @@ static void commander_ticker(void)
     }
     else
     {
-      //TRACE_DEBUG("Nod id %d not connected\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
+      commanderLocal->nods[commanderLocal->currentNodIdx].attepmt++;
+      if(commanderLocal->nods[commanderLocal->currentNodIdx].attepmt == I2C_RETRY_TIMEOUT_PERIODS)
+      {
+        commanderLocal->nods[commanderLocal->currentNodIdx].attepmt = 0;
+        TRACE_DEBUG("Trying to reconnect nod id %d\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
+        i2c_disable();
+        i2c_enable(&i2c);
+        i2c_configureMaster(I2C_FREQ_HZ);
+        commanderLocal->nods[commanderLocal->currentNodIdx].connected = TRUE;
+      }
       commander_nextnod();
     }
   }
@@ -125,6 +132,7 @@ void commander_createNod(unsigned int nodId,
     commanderLocal->nods[commanderLocal->totalNods].dir = TRANSFER_READ;
     commanderLocal->nods[commanderLocal->totalNods].writeBufferSize = nodWrtiteBufferSize;
     commanderLocal->nods[commanderLocal->totalNods].readBufferSize = nodReadBufferSize;
+    commanderLocal->nods[commanderLocal->totalNods].attepmt = 0;
     commanderLocal->totalNods++;
   }
 }

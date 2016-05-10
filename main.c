@@ -4,8 +4,8 @@
 
 #include "pio.h"
 
-//#include "tc.h"
-//#include "aic.h"
+#include "tc.h"
+#include "aic.h"
 
 #include "lcd.h"
 #include "usartd.h"
@@ -26,13 +26,14 @@ static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_
 #define STEP_MAX 1400
 #define STEP_MIN 400
 
+volatile unsigned int ppin = 0;
 volatile unsigned int tcrc = 100;
 volatile unsigned int step = STEP_MIN;
 
 volatile unsigned char go_right = TRUE;
 volatile unsigned char go_left = FALSE;
   
-/*void ISR_Tc0(void)
+void ISR_Tc0(void)
 {
     // Clear status bit to acknowledge interrupt
     unsigned int dummy;
@@ -98,7 +99,7 @@ void ConfigureTc(void)
     AIC_EnableIT(AT91C_ID_TC0);
 
     TC_Start(AT91C_BASE_TC0);
-}*/
+}
 
 /*void sw1ISR_Bp1(void)
 {
@@ -211,7 +212,7 @@ int main(void)
 
   PIO_Configure(&Test_pin, 1);
   PIO_Configure(&Clock_pin, 1);
-  //ConfigureTc();
+  ConfigureTc();
      
   TRACE_DEBUG("Initialization complete\n\r");
   
@@ -269,6 +270,32 @@ int main(void)
       }
     }
     
+    // Start here
+    tcrc = 46875 / (trimmer * 10000 / ADC_VREF);
+    if(sw1)
+    {
+      commandVault.requests.testreq |= (1 << 0);
+      commandVault.requests.testreq |= (1 << 1);        
+    }
+    else if(sw2)
+    {
+      commandVault.requests.testreq &=~(1 << 0);
+      commandVault.requests.testreq &=~(1 << 1);
+    }
+    else if(joysw)
+    {
+      TRACE_DEBUG("I2C data read %X\n\r", commandVault.status.teststat);
+    }
+    if(commandVault.requests.buttonA)
+    {
+      TRACE_DEBUG("Button A\n\r");
+    }
+    if(commandVault.requests.buttonB)
+    {
+      TRACE_DEBUG("Button B\n\r");
+    }
+    // End here
+    
     // Slow and happy
     slowTick++;
     if((slowTick > MAIN_LOOP_SLOW_DELAY) && looptrace)
@@ -287,35 +314,7 @@ int main(void)
                   temperature, trimmer, microphone);
 
       // Start here
-      
-      unsigned int temp = 46875 / (adc_getTrim() * 10000 / ADC_VREF);
-      tcrc = temp;
-
-      if(sw1)
-      {
-        commandVault.requests.testreq |= (1 << 0);
-        commandVault.requests.testreq |= (1 << 1);        
-      }
-      else if(sw2)
-      {
-        commandVault.requests.testreq &=~(1 << 0);
-        commandVault.requests.testreq &=~(1 << 1);
-      }
-      else if(joysw)
-      {
-        TRACE_DEBUG("I2C data read %X\n\r", commandVault.status.teststat);
-      }
-
-      if(commandVault.requests.buttonA)
-      {
-        TRACE_DEBUG("Button A\n\r");
-      }
-      
-      if(commandVault.requests.buttonB)
-      {
-        TRACE_DEBUG("Button B\n\r");
-      }
-      
+    
       // End here
     }
   }
