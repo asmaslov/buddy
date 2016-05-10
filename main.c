@@ -23,8 +23,8 @@
 static const Pin Test_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 
-#define STEP_MAX 1400
-#define STEP_MIN 400
+#define STEP_MAX 800
+#define STEP_MIN 100
 
 volatile unsigned int ppin = 0;
 volatile unsigned int tcrc = 100;
@@ -101,62 +101,17 @@ void ConfigureTc(void)
     TC_Start(AT91C_BASE_TC0);
 }
 
-/*void sw1ISR_Bp1(void)
+static void sw1Handler(void)
 {
-    static unsigned int lastPress = 0;
-
-    // Check if the button has been pressed
-    if (!PIO_Get(&pinPB1)) {
-
-        // Simple debounce method: limit push frequency to 1/DEBOUNCE_TIME
-        // (i.e. at least DEBOUNCE_TIME ms between each push)
-        if ((timestamp - lastPress) > DEBOUNCE_TIME) {
-
-            lastPress = timestamp;
-
-            // Toggle LED state
-            pLedStates[0] = !pLedStates[0];
-            if (!pLedStates[0]) {
-
-                LED_Clear(0);
-            }
-        }
-    }
+  TRACE_DEBUG("sw1 interrupt handler");
+  
 }
 
-//------------------------------------------------------------------------------
-/// Interrupt handler for pushbutton\#2. Starts or stops LED\#2 and TC0.
-//------------------------------------------------------------------------------
-void ISR_Bp2(void)
+static void sw2Handler(void)
 {
-    static unsigned int lastPress = 0;
+  TRACE_DEBUG("sw2 interrupt handler");
 
-    // Check if the button has been pressed
-    if (!PIO_Get(&pinPB2)) {
-
-        // Simple debounce method: limit push frequency to 1/DEBOUNCE_TIME
-        // (i.e. at least DEBOUNCE_TIME ms between each push)
-        if ((timestamp - lastPress) > DEBOUNCE_TIME) {
-
-            lastPress = timestamp;
-
-            // Disable LED#2 and TC0 if there were enabled
-            if (pLedStates[1]) {
-
-                pLedStates[1] = 0;
-                LED_Clear(1);
-                AT91C_BASE_TC0->TC_CCR = AT91C_TC_CLKDIS;
-            }   
-            // Enable LED#2 and TC0 if there were disabled
-            else {
-                
-                pLedStates[1] = 1;
-                LED_Set(1);
-                AT91C_BASE_TC0->TC_CCR = AT91C_TC_CLKEN | AT91C_TC_SWTRG;
-            }
-        }
-    }
-}*/
+}
 
 int main(void)
 {   
@@ -169,11 +124,11 @@ int main(void)
   PIO_Configure(Buttons_pins, PIO_LISTSIZE(Buttons_pins));
   unsigned char sw1, sw2;
   
-  /*PIO_InitializeInterrupts(AT91C_AIC_PRIOR_LOWEST);
-  PIO_ConfigureIt(&pinPB1, (void (*)(const Pin *)) ISR_Bp1);
-  PIO_ConfigureIt(&pinPB2, (void (*)(const Pin *)) ISR_Bp2);
-  PIO_EnableIt(&pinPB1);
-  PIO_EnableIt(&pinPB2);*/
+  PIO_InitializeInterrupts(AT91C_AIC_PRIOR_LOWEST);
+  PIO_ConfigureIt(&Buttons_pins[PUSHBUTTON_BP1], (PinHandler)sw1Handler);
+  PIO_ConfigureIt(&Buttons_pins[PUSHBUTTON_BP2], (PinHandler)sw2Handler);
+  PIO_EnableIt(&Buttons_pins[PUSHBUTTON_BP1]);
+  PIO_EnableIt(&Buttons_pins[PUSHBUTTON_BP2]);
   
   static const Pin Joystick_pins[] = { PINS_JOYSTICK };
   PIO_Configure(Joystick_pins, PIO_LISTSIZE(Joystick_pins));
@@ -271,7 +226,7 @@ int main(void)
     }
     
     // Start here
-    tcrc = 46875 / (trimmer * 10000 / ADC_VREF);
+    tcrc = 46875 / (trimmer * 20);
     if(sw1)
     {
       commandVault.requests.testreq |= (1 << 0);

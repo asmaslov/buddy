@@ -21,30 +21,28 @@
 #define PIO_LISTSIZE(pPins) (sizeof(pPins) / sizeof(Pin))
 
 typedef struct _Pin {
-  /// Bitmask indicating which pin(s) to configure
-  unsigned int mask; 
-  /// Pointer to the PIO controller which has the pin(s)
+  // Bitmask indicating which pin(s) to configure
+  unsigned int mask;
+  // Pointer to the PIO controller which has the pin(s)
   AT91S_PIO *pio;
-  /// Peripheral ID of the PIO controller which has the pin(s)
+  // Peripheral ID of the PIO controller which has the pin(s)
   unsigned char id;
-  /// Pin type
+  // Pin type
   unsigned char type;
-  /// Pin attribute
+  // Pin attribute
   unsigned char attribute;
 } Pin;
 
+typedef void (*PinHandler)(const Pin *);
+
 typedef struct _InterruptSource {
-  /// Pointer to the source pin instance
-  const Pin *pPin;
-  /// Interrupt handler
-  void (*handler)(const Pin *);
+  // Pointer to the source pin instance
+  const Pin *pin;
+  // Interrupt handler
+  PinHandler handler;
 } InterruptSource;
 
-/// List of interrupt sources.
-static InterruptSource pSources[MAX_INTERRUPT_SOURCES];
 
-/// Number of currently defined interrupt sources.
-static unsigned int numSources;
   
 extern unsigned char PIO_Configure(const Pin *list,
                                    unsigned int size);
@@ -62,7 +60,7 @@ extern unsigned char PIO_GetOutputDataStatus(const Pin *pin);
 extern void PIO_InitializeInterrupts(unsigned int priority);
 
 extern void PIO_ConfigureIt(const Pin *pPin,
-                            void (*handler)(const Pin *));
+                            PinHandler handler);
 
 extern void PIO_EnableIt(const Pin *pPin);
 

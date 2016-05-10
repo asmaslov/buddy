@@ -2,6 +2,9 @@
 #include "aic.h"
 #include "assert.h"
 
+static InterruptSource sources[MAX_INTERRUPT_SOURCES];
+static unsigned int numSources;
+
 static void PIO_SetPeripheralA(AT91S_PIO *pio,
                                unsigned int mask,
                                unsigned char enablePullUp)
@@ -118,7 +121,8 @@ unsigned char PIO_Configure(const Pin *list,
         AT91C_BASE_PMC->PMC_PCER = 1 << list->id;
         PIO_SetInput(list->pio,
                      list->mask,
-                     (list->attribute & PIO_PULLUP) ? 1 : 0, (list->attribute & PIO_DEGLITCH)? 1 : 0);
+                     (list->attribute & PIO_PULLUP) ? 1 : 0,
+                     (list->attribute & PIO_DEGLITCH) ? 1 : 0);
       break;
       case PIO_OUTPUT_0:
       case PIO_OUTPUT_1:
@@ -185,7 +189,7 @@ unsigned int PIO_GetISR(const Pin *pin)
   return (pin->pio->PIO_ISR);
 }
 
-static void PioInterruptHandler(unsigned int id, AT91S_PIO *pPio)
+static void PIO_InterruptHandler(unsigned int id, AT91S_PIO *pPio)
 {
   unsigned int status;
   unsigned int i;
@@ -203,14 +207,14 @@ static void PioInterruptHandler(unsigned int id, AT91S_PIO *pPio)
       // There cannot be an unconfigured source enabled.
       SANITY_CHECK(i < numSources);
       // Source is configured on the same controller
-      if (pSources[i].pPin->id == id)
+      if (sources[i].pin->id == id)
       {
         // Source has PIOs whose statuses have changed
-        if ((status & pSources[i].pPin->mask) != 0)
+        if ((status & sources[i].pin->mask) != 0)
         {
           TRACE_DEBUG("Interrupt source #%d triggered\n\r", i);
-          pSources[i].handler(pSources[i].pPin);
-          status &= ~(pSources[i].pPin->mask);
+          sources[i].handler(sources[i].pin);
+          status &= ~(sources[i].pin->mask);
         }
       }
       i++;
@@ -218,10 +222,10 @@ static void PioInterruptHandler(unsigned int id, AT91S_PIO *pPio)
   }
 }
 
-static void InterruptHandler(void)
+static void PIO_CommonInterruptHandler(void)
 {
-  PioInterruptHandler(AT91C_ID_PIOA, AT91C_BASE_PIOA);
-  PioInterruptHandler(AT91C_ID_PIOB, AT91C_BASE_PIOB);
+  PIO_InterruptHandler(AT91C_ID_PIOA, AT91C_BASE_PIOA);
+  PIO_InterruptHandler(AT91C_ID_PIOB, AT91C_BASE_PIOB);
 }
 
 void PIO_InitializeInterrupts(unsigned int priority)
@@ -230,34 +234,31 @@ void PIO_InitializeInterrupts(unsigned int priority)
   SANITY_CHECK((priority & ~AT91C_AIC_PRIOR) == 0);
   // Reset sources
   numSources = 0;
-  // Configure PIO interrupt sources
+  // Configure PIO interrupt sources A
   TRACE_DEBUG("PIO_Initialize: Configuring PIOA\n\r");
   AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_PIOA;
   AT91C_BASE_PIOA->PIO_ISR;
   AT91C_BASE_PIOA->PIO_IDR = 0xFFFFFFFF;
-  AIC_ConfigureIT(AT91C_ID_PIOA, priority, InterruptHandler);
+  AIC_ConfigureIT(AT91C_ID_PIOA, priority, PIO_CommonInterruptHandler);
   AIC_EnableIT(AT91C_ID_PIOA);
-  
+  // Configure PIO interrupt sources B
   TRACE_DEBUG("PIO_Initialize: Configuring PIOB\n\r");
   AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_PIOB;
   AT91C_BASE_PIOB->PIO_ISR;
   AT91C_BASE_PIOB->PIO_IDR = 0xFFFFFFFF;
-  AIC_ConfigureIT(AT91C_ID_PIOB, priority, InterruptHandler);
+  AIC_ConfigureIT(AT91C_ID_PIOB, priority, PIO_CommonInterruptHandler);
   AIC_EnableIT(AT91C_ID_PIOB);
 }
 
-void PIO_ConfigureIt(const Pin *pPin,
-                     void (*handler)(const Pin *))
+void PIO_ConfigureIt(const Pin *pin,
+                     PinHandler handler)
 {
-  InterruptSource *pSource;
   TRACE_DEBUG("PIO_ConfigureIt()\n\r");
-  SANITY_CHECK(pPin);
   ASSERT(numSources < MAX_INTERRUPT_SOURCES, "-F- PIO_ConfigureIt: Increase MAX_INTERRUPT_SOURCES\n\r");
   // Define new source
-  TRACE_DEBUG("PIO_ConfigureIt: Defining new source #%d.\n\r",  numSources);
-  pSource = &(pSources[numSources]);
-  pSource->pPin = pPin;
-  pSource->handler = handler;
+  TRACE_DEBUG("PIO_ConfigureIt: Defining new source #%d.\n\r", numSources);
+  sources[numSources].pin = pin;
+  sources[numSources].handler = handler;
   numSources++;
 }
 
@@ -270,7 +271,7 @@ void PIO_EnableIt(const Pin *pPin)
     unsigned char found = 0;
     while ((i < numSources) && !found)
     {
-      if (pSources[i].pPin == pPin)
+      if (sources[i].pin == pPin)
       {
         found = 1;
       }
