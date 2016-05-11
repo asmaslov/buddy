@@ -34,6 +34,12 @@ static void commander_ticker(void)
   if (status != 0)
   {
     commanderLocal->timestamp += (PIT_GetPIVR() >> 20);
+    // TODO:
+    // Triple condition based on 2 values
+    // bool connected
+    // -> true only after several successfull data exchanges
+    // bool disconnected
+    // -> true if any data exchange broken
     if(commanderLocal->nods[commanderLocal->currentNodIdx].connected)
     {
       if(commanderLocal->nods[commanderLocal->currentNodIdx].dir == TRANSFER_READ)

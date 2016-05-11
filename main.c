@@ -23,12 +23,13 @@
 static const Pin Test_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 
-#define STEP_MAX 6
-#define STEP_MIN 1
+#define STEP_MAX 700
+#define STEP_MIN 50
 
 volatile unsigned int ppin = 0;
 volatile unsigned int tcrc = 100;
 volatile unsigned int step = STEP_MIN;
+volatile unsigned int koeff = 20;
 
 volatile unsigned char go_right = TRUE;
 volatile unsigned char go_left = FALSE;
@@ -65,11 +66,21 @@ void ISR_Tc0(void)
     if(go_right)
     {
       step++;
-      if(step >= STEP_MAX)
+      if(step > STEP_MAX - STEP_MIN)
       {
-        //
-        step++;
-        //
+        koeff = 5;
+      }
+      else if(step > STEP_MAX - (2 * STEP_MIN))
+      {
+        koeff = 10;
+      }
+
+      else      
+      {
+        koeff = 20;
+      }
+      if(step > STEP_MAX)
+      {
         go_right = FALSE;
         go_left = TRUE;
       }
@@ -77,6 +88,18 @@ void ISR_Tc0(void)
     if(go_left)
     {
       step--;
+      if(step < STEP_MIN + STEP_MIN)
+      {
+        koeff = 5;
+      }
+      else if(step < STEP_MIN + (2 * STEP_MIN))
+      {
+        koeff = 10;
+      }      
+      else      
+      {
+        koeff = 20;
+      }
       if(step < STEP_MIN)
       {
         go_right = TRUE;
@@ -88,27 +111,11 @@ void ISR_Tc0(void)
     commandVault_lock();
     if(go_right)
     {
-      commandVault.requests.endir34 = 0x3F;
-      if((commandVault.requests.endir12 == 0) || (commandVault.requests.endir12 == 0x1F) || (commandVault.requests.endir12 == 0x3F))
-      {
-        commandVault.requests.endir12 = 0x3E;
-      }
-      else
-      {
-        commandVault.requests.endir12 = ~(~(commandVault.requests.endir12 | 0xC0) << 1) & 0x3F;
-      }
+      commandVault.requests.endir34 |= (1 << 1);
     }
     if(go_left)
     {
-      commandVault.requests.endir12 = 0x3F;
-      if((commandVault.requests.endir34 == 0) || (commandVault.requests.endir34 == 0x3E) || (commandVault.requests.endir34 == 0x3F))
-      {
-        commandVault.requests.endir34 = 0x1F;
-      }
-      else
-      {
-        commandVault.requests.endir34 = ~(~(commandVault.requests.endir34 | 0xC0) >> 1) & 0x3F;
-      }
+      commandVault.requests.endir34 &= ~(1 << 1);
     }
     comport_uputchar(commandVault.status.stat12 >> 6);
     comport_uputchar(commandVault.status.stat34 >> 6);
@@ -220,6 +227,9 @@ int main(void)
   // Main interrupt-based logic launch
   commander_start();
   
+  commandVault.requests.endir12 = 0x3F;
+  commandVault.requests.endir34 = 0x3F;
+  
   while(1)
   {
     // Fast and furious
@@ -267,21 +277,15 @@ int main(void)
     }
     
     // Start here
-    tcrc = 46875 / (trimmer);
-    /*if(sw1)
+    tcrc = 46875 / (trimmer * koeff);
+    if(sw1)
     {
-      commandVault.requests.testreq |= (1 << 0);
-      commandVault.requests.testreq |= (1 << 1);        
+      commandVault.requests.endir34 |= (1 << 0);
     }
-    else if(sw2)
+    if(sw2)
     {
-      commandVault.requests.testreq &=~(1 << 0);
-      commandVault.requests.testreq &=~(1 << 1);
+      commandVault.requests.endir34 &=~(1 << 0);
     }
-    else if(joysw)
-    {
-      TRACE_DEBUG("I2C data read %X\n\r", commandVault.status.teststat);
-    }*/
     if(commandVault.requests.buttonA)
     {
       TRACE_DEBUG("Button A\n\r");
