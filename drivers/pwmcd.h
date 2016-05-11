@@ -29,6 +29,4 @@ void pwm_enable(PWM *p);
 
 void pwm_disable(void);
 
-void pwm_beep(unsigned int freq, unsigned int ms);
-
 #endif //#ifndef PWMCD_H

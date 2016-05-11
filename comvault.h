@@ -24,11 +24,13 @@ typedef struct _Requests {
   unsigned char buttonX;
   unsigned char buttonY;
   
-  unsigned char testreq;
+  unsigned char endir12;
+  unsigned char endir34;
 } Requests;
 
 typedef struct _Status {
-  unsigned char teststat;
+  unsigned char stat12;
+  unsigned char stat34;
 } Status;
 
 typedef struct _CommandVault {

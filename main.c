@@ -23,8 +23,8 @@
 static const Pin Test_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 
-#define STEP_MAX 800
-#define STEP_MIN 100
+#define STEP_MAX 6
+#define STEP_MIN 1
 
 volatile unsigned int ppin = 0;
 volatile unsigned int tcrc = 100;
@@ -33,6 +33,9 @@ volatile unsigned int step = STEP_MIN;
 volatile unsigned char go_right = TRUE;
 volatile unsigned char go_left = FALSE;
   
+CommandVault commandVault;
+Comport comport;
+
 void ISR_Tc0(void)
 {
     // Clear status bit to acknowledge interrupt
@@ -62,8 +65,11 @@ void ISR_Tc0(void)
     if(go_right)
     {
       step++;
-      if(step > STEP_MAX)
+      if(step >= STEP_MAX)
       {
+        //
+        step++;
+        //
         go_right = FALSE;
         go_left = TRUE;
       }
@@ -77,6 +83,38 @@ void ISR_Tc0(void)
         go_left = FALSE;
       }
     }  
+    
+    
+    commandVault_lock();
+    if(go_right)
+    {
+      commandVault.requests.endir34 = 0x3F;
+      if((commandVault.requests.endir12 == 0) || (commandVault.requests.endir12 == 0x1F) || (commandVault.requests.endir12 == 0x3F))
+      {
+        commandVault.requests.endir12 = 0x3E;
+      }
+      else
+      {
+        commandVault.requests.endir12 = ~(~(commandVault.requests.endir12 | 0xC0) << 1) & 0x3F;
+      }
+    }
+    if(go_left)
+    {
+      commandVault.requests.endir12 = 0x3F;
+      if((commandVault.requests.endir34 == 0) || (commandVault.requests.endir34 == 0x3E) || (commandVault.requests.endir34 == 0x3F))
+      {
+        commandVault.requests.endir34 = 0x1F;
+      }
+      else
+      {
+        commandVault.requests.endir34 = ~(~(commandVault.requests.endir34 | 0xC0) >> 1) & 0x3F;
+      }
+    }
+    comport_uputchar(commandVault.status.stat12 >> 6);
+    comport_uputchar(commandVault.status.stat34 >> 6);
+    commandVault_unlock();
+    
+    
 }
 
 
@@ -141,7 +179,7 @@ int main(void)
   adc_work();
   unsigned int temperature, trimmer, microphone;  
   
-  Comport comport;
+
   
   PWM pwm;
   pwm_enable(&pwm);   
@@ -158,8 +196,11 @@ int main(void)
   // ---
 
   // Create and enable main logic modules
-  CommandVault commandVault;
+
   commandVault_init(&commandVault);
+  
+  comport_enable(&comport);
+  comport_configure(USART0, 57600);
   
   Commander commander;
   commander_init(&commander, &commandVault, &comport);
@@ -186,7 +227,7 @@ int main(void)
     if(fastTick > MAIN_LOOP_FAST_DELAY)
     {
       fastTick = 0;        
-      commandVault_lock();
+      /*commandVault_lock();
       if(go_right)
       {
         commandVault.requests.testreq &=~(1 << 2);
@@ -195,7 +236,7 @@ int main(void)
       {
         commandVault.requests.testreq |= (1 << 2);
       }
-      commandVault_unlock();
+      commandVault_unlock();*/
       sw1 = !PIO_Get(&Buttons_pins[PUSHBUTTON_BP1]);
       sw2 = !PIO_Get(&Buttons_pins[PUSHBUTTON_BP2]);
       joyup = !PIO_Get(&Joystick_pins[JOYSTICK_UP]);
@@ -226,8 +267,8 @@ int main(void)
     }
     
     // Start here
-    tcrc = 46875 / (trimmer * 20);
-    if(sw1)
+    tcrc = 46875 / (trimmer);
+    /*if(sw1)
     {
       commandVault.requests.testreq |= (1 << 0);
       commandVault.requests.testreq |= (1 << 1);        
@@ -240,7 +281,7 @@ int main(void)
     else if(joysw)
     {
       TRACE_DEBUG("I2C data read %X\n\r", commandVault.status.teststat);
-    }
+    }*/
     if(commandVault.requests.buttonA)
     {
       TRACE_DEBUG("Button A\n\r");

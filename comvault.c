@@ -22,7 +22,8 @@ void commandVault_init(CommandVault *cv)
   commandVaultLocal->requests.buttonX = 0;
   commandVaultLocal->requests.buttonY = 0;
 
-  commandVaultLocal->requests.testreq = 0;
+  commandVaultLocal->requests.endir12 = 0;
+  commandVaultLocal->requests.endir34 = 0;
 }
 
 void commandVault_lock(void)

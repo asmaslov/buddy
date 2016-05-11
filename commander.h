@@ -5,12 +5,13 @@
 #include "usartd.h"
 
 //#define I2C_PERIOD_US 1500
-#define I2C_PERIOD_US 15000
+#define I2C_PERIOD_US 5000
 #define I2C_RETRY_TIMEOUT_PERIODS 10
 #define I2C_BUS_DEVICE_MAX_COUNT 3
 #define I2C_BUFFER_MAX_SIZE 3
 
-#define PCF_ADDRESS 0x39
+#define ENDIR12_ADDRESS 0x39
+#define ENDIR34_ADDRESS 0x3A
 
 typedef struct {
   unsigned char connected;

@@ -42,8 +42,6 @@ typedef struct _InterruptSource {
   PinHandler handler;
 } InterruptSource;
 
-
-  
 extern unsigned char PIO_Configure(const Pin *list,
                                    unsigned int size);
 

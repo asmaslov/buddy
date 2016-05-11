@@ -48,9 +48,19 @@ static void commander_ticker(void)
         commanderLocal->nods[commanderLocal->currentNodIdx].dir = TRANSFER_WRITE;
         if(!commandVault_locked())
         {
+          commandVault_lock();
           // TODO :
           // Copy values from buffer to vault according to protocol
-          commandVaultCommander->status.teststat = commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer[0];
+          switch(commanderLocal->nods[commanderLocal->currentNodIdx].id)
+          {
+            case ENDIR12_ADDRESS:
+              commandVaultCommander->status.stat12 = commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer[0];
+            break;
+            case ENDIR34_ADDRESS:
+              commandVaultCommander->status.stat34 = commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer[0];
+            break;
+          }  
+          commandVault_unlock();
         }
       }
       else
@@ -59,9 +69,19 @@ static void commander_ticker(void)
         // If vault is busy on reading -> don't copy, use old values
         if(!commandVault_locked())
         {
+          commandVault_lock();
           // TODO :
           // Copy command from vault to buffer according to protocol
-          commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer[0] = commandVaultCommander->requests.testreq;
+          switch(commanderLocal->nods[commanderLocal->currentNodIdx].id)
+          {
+            case ENDIR12_ADDRESS:
+              commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer[0] = commandVaultCommander->requests.endir12;
+            break;
+            case ENDIR34_ADDRESS:
+              commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer[0] = commandVaultCommander->requests.endir34;
+            break;
+          }        
+          commandVault_unlock();
         }
         if(!i2c_writeNow(commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer,
                          commanderLocal->nods[commanderLocal->currentNodIdx].writeBufferSize))
@@ -99,8 +119,6 @@ void commander_init(Commander *c, CommandVault *cv, Comport *cp)
   commandVaultCommander = cv;
   SANITY_CHECK(cp);
   comportCommander = cp;
-  comport_enable(comportCommander);
-  comport_configure(USART0, 57600);
   comport_setParserFunc(parser_work);
   i2c_enable(&i2c);
   i2c_configureMaster(I2C_FREQ_HZ);
@@ -109,7 +127,8 @@ void commander_init(Commander *c, CommandVault *cv, Comport *cp)
   commanderLocal->totalNods = 0;
   // TODO:
   // Create real nods
-  commander_createNod(PCF_ADDRESS, 1, 1);
+  commander_createNod(ENDIR12_ADDRESS, 1, 1);
+  commander_createNod(ENDIR34_ADDRESS, 1, 1);
   parser_enable(&parser, commandVaultCommander);
 }
 

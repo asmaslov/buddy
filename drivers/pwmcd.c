@@ -34,7 +34,7 @@ static void pwm_handler(void)
       pwmLocal->count = 0;
       PWMC_SetDutyCycle(PWM_SPEAKER, pwmLocal->duty);
     }
-  }
+  }  
 }
 
 void pwm_enable(PWM *p)
@@ -71,9 +71,4 @@ void pwm_enable(PWM *p)
 void pwm_disable(void)
 {
   PMC_DisablePeripheral(AT91C_ID_PWMC);
-}
-
-void pwm_beep(unsigned int freq, unsigned int ms)
-{
-
 }
