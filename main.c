@@ -29,6 +29,7 @@ static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_
 volatile unsigned int ppin = 0;
 volatile unsigned int tcrc = 100;
 volatile unsigned int step = STEP_MIN;
+volatile unsigned int koeff = 20;
 
 volatile unsigned char go_right = TRUE;
 volatile unsigned char go_left = FALSE;
@@ -65,6 +66,19 @@ void ISR_Tc0(void)
     if(go_right)
     {
       step++;
+      if(step > STEP_MAX - STEP_MIN)
+      {
+        koeff = 5;
+      }
+      else if(step > STEP_MAX - (2 * STEP_MIN))
+      {
+        koeff = 10;
+      }
+
+      else      
+      {
+        koeff = 20;
+      }
       if(step > STEP_MAX)
       {
         go_right = FALSE;
@@ -74,6 +88,18 @@ void ISR_Tc0(void)
     if(go_left)
     {
       step--;
+      if(step < STEP_MIN + STEP_MIN)
+      {
+        koeff = 5;
+      }
+      else if(step < STEP_MIN + (2 * STEP_MIN))
+      {
+        koeff = 10;
+      }      
+      else      
+      {
+        koeff = 20;
+      }
       if(step < STEP_MIN)
       {
         go_right = TRUE;
@@ -251,7 +277,7 @@ int main(void)
     }
     
     // Start here
-    tcrc = 46875 / (trimmer * 20);
+    tcrc = 46875 / (trimmer * koeff);
     if(sw1)
     {
       commandVault.requests.endir34 |= (1 << 0);
