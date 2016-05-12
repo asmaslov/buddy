@@ -20,8 +20,8 @@
 #define MAIN_LOOP_SLOW_DELAY 100000
 #define MAIN_LOOP_FAST_DELAY 100
 
-static const Pin Test_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
-static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
+static const Pin NodPower_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT};
+static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT};
 
 #define STEP_MAX 700
 #define STEP_MIN 50
@@ -54,13 +54,11 @@ void ISR_Tc0(void)
     {
       ppin = 0;
       PIO_Clear(&Clock_pin);
-      PIO_Clear(&Test_pin);
     }
     else
     {
       ppin = 1;
       PIO_Set(&Clock_pin);
-      PIO_Set(&Test_pin);
     }
 
     if(go_right)
@@ -111,11 +109,17 @@ void ISR_Tc0(void)
     commandVault_lock();
     if(go_right)
     {
+      commandVault.requests.endir12 |= (1 << 1);
+      commandVault.requests.endir12 |= (1 << 3);
       commandVault.requests.endir34 |= (1 << 1);
+      commandVault.requests.endir34 |= (1 << 3);
     }
     if(go_left)
     {
+      commandVault.requests.endir12 &= ~(1 << 1);
+      commandVault.requests.endir12 &= ~(1 << 3);
       commandVault.requests.endir34 &= ~(1 << 1);
+      commandVault.requests.endir34 &= ~(1 << 3);
     }
     comport_uputchar(commandVault.status.stat12 >> 6);
     comport_uputchar(commandVault.status.stat34 >> 6);
@@ -149,13 +153,19 @@ void ConfigureTc(void)
 static void sw1Handler(void)
 {
   TRACE_DEBUG("sw1 interrupt handler");
-  
+  commandVault.requests.endir12 |= (1 << 0);
+  commandVault.requests.endir12 |= (1 << 2);
+  commandVault.requests.endir34 |= (1 << 0);
+  commandVault.requests.endir34 |= (1 << 2);
 }
 
 static void sw2Handler(void)
 {
   TRACE_DEBUG("sw2 interrupt handler");
-
+  commandVault.requests.endir12 &=~(1 << 0);
+  commandVault.requests.endir12 &=~(1 << 2);
+  commandVault.requests.endir34 &=~(1 << 0);
+  commandVault.requests.endir34 &=~(1 << 2);
 }
 
 int main(void)
@@ -185,8 +195,7 @@ int main(void)
   adc_enable(&adc);
   adc_work();
   unsigned int temperature, trimmer, microphone;  
-  
-
+ 
   
   PWM pwm;
   pwm_enable(&pwm);   
@@ -213,11 +222,14 @@ int main(void)
   commander_init(&commander, &commandVault, &comport);
   // ---
 
-  PIO_Configure(&Test_pin, 1);
+  PIO_Configure(&NodPower_pin, 1);
   PIO_Configure(&Clock_pin, 1);
-  ConfigureTc();
-     
+
+  
   TRACE_DEBUG("Initialization complete\n\r");
+
+  PIO_Set(&NodPower_pin);
+  delayMs(200);
   
   // TODO: Make a nice standby mode instead of while(1)
   unsigned long fastTick = 0;
@@ -227,9 +239,10 @@ int main(void)
   // Main interrupt-based logic launch
   commander_start();
   
-  commandVault.requests.endir12 = 0x3F;
-  commandVault.requests.endir34 = 0x3F;
+  delayMs(100);
   
+  ConfigureTc();
+   
   while(1)
   {
     // Fast and furious
@@ -237,16 +250,6 @@ int main(void)
     if(fastTick > MAIN_LOOP_FAST_DELAY)
     {
       fastTick = 0;        
-      /*commandVault_lock();
-      if(go_right)
-      {
-        commandVault.requests.testreq &=~(1 << 2);
-      }
-      if(go_left)
-      {
-        commandVault.requests.testreq |= (1 << 2);
-      }
-      commandVault_unlock();*/
       sw1 = !PIO_Get(&Buttons_pins[PUSHBUTTON_BP1]);
       sw2 = !PIO_Get(&Buttons_pins[PUSHBUTTON_BP2]);
       joyup = !PIO_Get(&Joystick_pins[JOYSTICK_UP]);
@@ -278,14 +281,6 @@ int main(void)
     
     // Start here
     tcrc = 46875 / (trimmer * koeff);
-    if(sw1)
-    {
-      commandVault.requests.endir34 |= (1 << 0);
-    }
-    if(sw2)
-    {
-      commandVault.requests.endir34 &=~(1 << 0);
-    }
     if(commandVault.requests.buttonA)
     {
       TRACE_DEBUG("Button A\n\r");
