@@ -110,11 +110,13 @@ static void commander_ticker(void)
         commanderLocal->nods[commanderLocal->currentNodIdx].attepmt = 0;
         PIO_Clear(&NodPower_pin);
         TRACE_DEBUG("Trying to reconnect nod id %d\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
+        commander_pause();
         i2c_disable();
-        delayMs(100);
+        delayMs(500);
         PIO_Set(&NodPower_pin);
         i2c_enable(&i2c);
         i2c_configureMaster(I2C_FREQ_HZ);
+        commander_resume();
         commanderLocal->nods[commanderLocal->currentNodIdx].connected = TRUE;
       }
       commander_nextnod();
@@ -197,4 +199,14 @@ void commander_stop(void)
   PIT_DisableIT();
   commanderLocal->timestamp = 0;
   commanderLocal->currentNodIdx = 0;
+}
+
+void commander_pause(void)
+{
+  PIT_DisableIT();
+}
+
+void commander_resume(void)
+{
+  PIT_EnableIT();
 }

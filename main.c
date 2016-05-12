@@ -105,7 +105,6 @@ void ISR_Tc0(void)
       }
     }  
     
-    
     commandVault_lock();
     if(go_right)
     {
@@ -124,10 +123,8 @@ void ISR_Tc0(void)
     comport_uputchar(commandVault.status.stat12 >> 6);
     comport_uputchar(commandVault.status.stat34 >> 6);
     commandVault_unlock();
-    
-    
-}
 
+}
 
 void ConfigureTc(void)
 {
@@ -196,7 +193,6 @@ int main(void)
   adc_work();
   unsigned int temperature, trimmer, microphone;  
  
-  
   PWM pwm;
   pwm_enable(&pwm);   
   // ---
@@ -225,9 +221,9 @@ int main(void)
   PIO_Configure(&NodPower_pin, 1);
   PIO_Configure(&Clock_pin, 1);
 
-  
   TRACE_DEBUG("Initialization complete\n\r");
 
+  // Power up I2C nods
   PIO_Set(&NodPower_pin);
   delayMs(200);
   
@@ -241,6 +237,7 @@ int main(void)
   
   delayMs(100);
   
+  // Launch common step ticker
   ConfigureTc();
    
   while(1)
@@ -277,20 +274,20 @@ int main(void)
         }
         looptrace = FALSE;
       }
+      
+      // Start here
+      tcrc = 46875 / (trimmer * koeff);
+      if(commandVault.requests.buttonA)
+      {
+        TRACE_DEBUG("Button A\n\r");
+      }
+      if(commandVault.requests.buttonB)
+      {
+        TRACE_DEBUG("Button B\n\r");
+      }
+      // End here      
     }
-    
-    // Start here
-    tcrc = 46875 / (trimmer * koeff);
-    if(commandVault.requests.buttonA)
-    {
-      TRACE_DEBUG("Button A\n\r");
-    }
-    if(commandVault.requests.buttonB)
-    {
-      TRACE_DEBUG("Button B\n\r");
-    }
-    // End here
-    
+
     // Slow and happy
     slowTick++;
     if((slowTick > MAIN_LOOP_SLOW_DELAY) && looptrace)

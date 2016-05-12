@@ -46,4 +46,8 @@ void commander_start(void);
 
 void commander_stop(void);
 
+void commander_pause(void);
+
+void commander_resume(void);
+
 #endif //#ifndef COMMANDER_H
