@@ -6,11 +6,14 @@
 #include "usartd.h"
 #include "parser.h"
 
+#include "delay.h"
 #include "assert.h"
 
 Commander *commanderLocal;
 CommandVault *commandVaultCommander;
 Comport *comportCommander;
+
+static const Pin NodPower_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT};
 
 Parser parser;
 I2c i2c;
@@ -105,8 +108,11 @@ static void commander_ticker(void)
       if(commanderLocal->nods[commanderLocal->currentNodIdx].attepmt == I2C_RETRY_TIMEOUT_PERIODS)
       {
         commanderLocal->nods[commanderLocal->currentNodIdx].attepmt = 0;
+        PIO_Clear(&NodPower_pin);
         TRACE_DEBUG("Trying to reconnect nod id %d\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
         i2c_disable();
+        delayMs(100);
+        PIO_Set(&NodPower_pin);
         i2c_enable(&i2c);
         i2c_configureMaster(I2C_FREQ_HZ);
         commanderLocal->nods[commanderLocal->currentNodIdx].connected = TRUE;
