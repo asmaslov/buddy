@@ -30,7 +30,7 @@ typedef struct _Requests {
 
 typedef struct _Status {
   unsigned char stat12;
-  unsigned char stat34;
+  unsigned char stat34; 
 } Status;
 
 typedef struct _CommandVault {

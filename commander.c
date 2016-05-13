@@ -69,7 +69,15 @@ static void commander_ticker(void)
               commandVaultCommander->status.stat34 = commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer[0];
             break;
           }  
+          // TODO:
+          // Make this work
+          /*commandVaultCommander->requests.endir12 |= (commandVaultCommander->status.stat12 & 0xC0);
+          commandVaultCommander->requests.endir12 &= (commandVaultCommander->status.stat12 & 0x3F);
+          commandVaultCommander->requests.endir34 |= (commandVaultCommander->status.stat34 & 0xC0);
+          commandVaultCommander->requests.endir34 &= (commandVaultCommander->status.stat34 & 0x3F);*/
           commandVault_unlock();
+          comport_uputchar(commandVaultCommander->status.stat12 >> 6);
+          comport_uputchar(commandVaultCommander->status.stat34 >> 6);
         }
       }
       else
