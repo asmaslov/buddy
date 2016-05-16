@@ -24,9 +24,9 @@ static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_
 static const Pin Buttons_pins[] = { PINS_PUSHBUTTONS };
 static const Pin Joystick_pins[] = { PINS_JOYSTICK };
 
-#define KOEFF_END 10
-#define KOEFF_SLOW 20
-#define KOEFF_FAST 50
+#define KOEFF_END 1
+#define KOEFF_SLOW 2
+#define KOEFF_FAST 5
 #define STEP_MAX 5000
 #define STEP_MIN 1000
 
@@ -152,6 +152,8 @@ static void sw1Handler(void)
   if(!PIO_Get(&Buttons_pins[PUSHBUTTON_BP1]))
   {
     step = STEP_MIN;
+    go_right = TRUE;
+    go_left = FALSE;
     tickEnable = TRUE;
     commandVault_lock();
     commandVault.requests.endir12 |= (1 << 0);
@@ -267,9 +269,11 @@ int main(void)
       joyright = !PIO_Get(&Joystick_pins[JOYSTICK_RIGHT]);
       joysw = !PIO_Get(&Joystick_pins[JOYSTICK_BUTTON]);
       temperature = adc_getTemp();
-      trimmer = adc_getTrim() * 100 / ADC_VREF;
+      trimmer = adc_getTrim() * 1000 / ADC_VREF;
       microphone = adc_getMicIn();
       adc_work();      
+
+      // Start here
       if(sw1 && sw2 && joyup)
       {
         if(!looptrace)
@@ -287,8 +291,8 @@ int main(void)
         looptrace = FALSE;
       }
       
-      // Start here
       tcrc = 46875 / (trimmer * koeff);
+      
       if(commandVault.requests.buttonA)
       {
         TRACE_DEBUG("Button A\n\r");

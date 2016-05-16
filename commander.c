@@ -69,21 +69,16 @@ static void commander_ticker(void)
               commandVaultCommander->status.stat34 = commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer[0];
             break;
           }  
-          // TODO:
-          // Make this work
-          /*commandVaultCommander->requests.endir12 |= (commandVaultCommander->status.stat12 & 0xC0);
-          commandVaultCommander->requests.endir12 &= (commandVaultCommander->status.stat12 & 0x3F);
+          commandVaultCommander->requests.endir12 |= (commandVaultCommander->status.stat12 & 0xC0);
+          commandVaultCommander->requests.endir12 &= (commandVaultCommander->status.stat12 | 0x3F);
           commandVaultCommander->requests.endir34 |= (commandVaultCommander->status.stat34 & 0xC0);
-          commandVaultCommander->requests.endir34 &= (commandVaultCommander->status.stat34 & 0x3F);*/
+          commandVaultCommander->requests.endir34 &= (commandVaultCommander->status.stat34 | 0x3F);
           commandVault_unlock();
-          comport_uputchar(commandVaultCommander->status.stat12 >> 6);
-          comport_uputchar(commandVaultCommander->status.stat34 >> 6);
         }
       }
       else
       {
         i2c_setAddress(commanderLocal->nods[commanderLocal->currentNodIdx].id);
-        // If vault is busy on reading -> don't copy, use old values
         if(!commandVault_locked())
         {
           commandVault_lock();
@@ -120,7 +115,7 @@ static void commander_ticker(void)
         TRACE_DEBUG("Trying to reconnect nod id %d\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
         commander_pause();
         i2c_disable();
-        delayMs(500);
+        delayMs(50);
         PIO_Set(&NodPower_pin);
         i2c_enable(&i2c);
         i2c_configureMaster(I2C_FREQ_HZ);
