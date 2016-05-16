@@ -37,69 +37,86 @@ static void commander_ticker(void)
   if (status != 0)
   {
     commanderLocal->timestamp += (PIT_GetPIVR() >> 20);
-    // TODO:
-    // Triple condition based on 2 values
-    // bool connected
-    // -> true only after several successfull data exchanges
-    // bool disconnected
-    // -> true if any data exchange broken
-    if(commanderLocal->nods[commanderLocal->currentNodIdx].connected)
+    if(!commanderLocal->nods[commanderLocal->currentNodIdx].disconnected)
     {
       if(commanderLocal->nods[commanderLocal->currentNodIdx].dir == TRANSFER_READ)
       {
         i2c_setAddress(commanderLocal->nods[commanderLocal->currentNodIdx].id);
-        if(!i2c_readNow(commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer,
-                        commanderLocal->nods[commanderLocal->currentNodIdx].readBufferSize))
+        if(i2c_readNow(commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer,
+                       commanderLocal->nods[commanderLocal->currentNodIdx].readBufferSize))
+        {
+          if(!commanderLocal->nods[commanderLocal->currentNodIdx].connected)
+          {
+            commanderLocal->nods[commanderLocal->currentNodIdx].success++;
+            if(commanderLocal->nods[commanderLocal->currentNodIdx].success == I2C_TRUST_EXCHANGE_PERIODS)
+            {
+              commanderLocal->nods[commanderLocal->currentNodIdx].connected = TRUE;
+              commanderLocal->nods[commanderLocal->currentNodIdx].success = 0;
+              TRACE_DEBUG("Nod id %d online \n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
+            }
+          }
+        }
+        else
         {
           commanderLocal->nods[commanderLocal->currentNodIdx].connected = FALSE;
+          commanderLocal->nods[commanderLocal->currentNodIdx].disconnected = TRUE;
+          commanderLocal->nods[commanderLocal->currentNodIdx].attepmt = 0;
           TRACE_DEBUG("Nod id %d not connected on trying to read\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
         }
-        commanderLocal->nods[commanderLocal->currentNodIdx].dir = TRANSFER_WRITE;
-        if(!commandVault_locked())
+        if(commanderLocal->nods[commanderLocal->currentNodIdx].connected)
         {
-          commandVault_lock();
-          // TODO :
-          // Copy values from buffer to vault according to protocol
-          switch(commanderLocal->nods[commanderLocal->currentNodIdx].id)
+          if(!commandVault_locked())
           {
-            case ENDIR12_ADDRESS:
-              commandVaultCommander->status.stat12 = commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer[0];
-            break;
-            case ENDIR34_ADDRESS:
-              commandVaultCommander->status.stat34 = commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer[0];
-            break;
-          }  
-          commandVaultCommander->requests.endir12 |= (commandVaultCommander->status.stat12 & 0xC0);
-          commandVaultCommander->requests.endir12 &= (commandVaultCommander->status.stat12 | 0x3F);
-          commandVaultCommander->requests.endir34 |= (commandVaultCommander->status.stat34 & 0xC0);
-          commandVaultCommander->requests.endir34 &= (commandVaultCommander->status.stat34 | 0x3F);
-          commandVault_unlock();
+            commandVault_lock();
+            // TODO :
+            // Copy values from buffer to vault according to protocol
+            switch(commanderLocal->nods[commanderLocal->currentNodIdx].id)
+            {
+              case ENDIR12_ADDRESS:
+                commandVaultCommander->status.stat12 = commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer[0];
+              break;
+              case ENDIR34_ADDRESS:
+                commandVaultCommander->status.stat34 = commanderLocal->nods[commanderLocal->currentNodIdx].readBuffer[0];
+              break;
+            }  
+            commandVaultCommander->requests.endir12 |= (commandVaultCommander->status.stat12 & 0xC0);
+            commandVaultCommander->requests.endir12 &= (commandVaultCommander->status.stat12 | 0x3F);
+            commandVaultCommander->requests.endir34 |= (commandVaultCommander->status.stat34 & 0xC0);
+            commandVaultCommander->requests.endir34 &= (commandVaultCommander->status.stat34 | 0x3F);
+            commandVault_unlock();
+          }
         }
+        commanderLocal->nods[commanderLocal->currentNodIdx].dir = TRANSFER_WRITE;
       }
       else
       {
-        i2c_setAddress(commanderLocal->nods[commanderLocal->currentNodIdx].id);
-        if(!commandVault_locked())
+        if(commanderLocal->nods[commanderLocal->currentNodIdx].connected)
         {
-          commandVault_lock();
-          // TODO :
-          // Copy command from vault to buffer according to protocol
-          switch(commanderLocal->nods[commanderLocal->currentNodIdx].id)
+          i2c_setAddress(commanderLocal->nods[commanderLocal->currentNodIdx].id);
+          if(!commandVault_locked())
           {
-            case ENDIR12_ADDRESS:
-              commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer[0] = commandVaultCommander->requests.endir12;
-            break;
-            case ENDIR34_ADDRESS:
-              commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer[0] = commandVaultCommander->requests.endir34;
-            break;
-          }        
-          commandVault_unlock();
-        }
-        if(!i2c_writeNow(commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer,
-                         commanderLocal->nods[commanderLocal->currentNodIdx].writeBufferSize))
-        {
-          commanderLocal->nods[commanderLocal->currentNodIdx].connected = FALSE;
-          TRACE_DEBUG("Nod id %d not connected on trying to write\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
+            commandVault_lock();
+            // TODO :
+            // Copy command from vault to buffer according to protocol
+            switch(commanderLocal->nods[commanderLocal->currentNodIdx].id)
+            {
+              case ENDIR12_ADDRESS:
+                commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer[0] = commandVaultCommander->requests.endir12;
+              break;
+              case ENDIR34_ADDRESS:
+                commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer[0] = commandVaultCommander->requests.endir34;
+              break;
+            }        
+            commandVault_unlock();
+          }
+          if(!i2c_writeNow(commanderLocal->nods[commanderLocal->currentNodIdx].writeBuffer,
+                           commanderLocal->nods[commanderLocal->currentNodIdx].writeBufferSize))
+          {
+            commanderLocal->nods[commanderLocal->currentNodIdx].connected = FALSE;
+            commanderLocal->nods[commanderLocal->currentNodIdx].disconnected = TRUE;
+            commanderLocal->nods[commanderLocal->currentNodIdx].attepmt = 0;
+            TRACE_DEBUG("Nod id %d not connected on trying to write\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
+          }
         }
         commanderLocal->nods[commanderLocal->currentNodIdx].dir = TRANSFER_READ;
         commander_nextnod();
@@ -115,12 +132,13 @@ static void commander_ticker(void)
         TRACE_DEBUG("Trying to reconnect nod id %d\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
         commander_pause();
         i2c_disable();
-        delayMs(50);
+        delayMs(200);
         PIO_Set(&NodPower_pin);
         i2c_enable(&i2c);
         i2c_configureMaster(I2C_FREQ_HZ);
         commander_resume();
-        commanderLocal->nods[commanderLocal->currentNodIdx].connected = TRUE;
+        commanderLocal->nods[commanderLocal->currentNodIdx].disconnected = FALSE;
+        commanderLocal->nods[commanderLocal->currentNodIdx].success = 0;
       }
       commander_nextnod();
     }
@@ -163,11 +181,13 @@ void commander_createNod(unsigned int nodId,
   }
   else
   {
-    commanderLocal->nods[commanderLocal->totalNods].connected = TRUE;
+    commanderLocal->nods[commanderLocal->totalNods].connected = FALSE;
+    commanderLocal->nods[commanderLocal->totalNods].disconnected = FALSE;
     commanderLocal->nods[commanderLocal->totalNods].id = nodId;
     commanderLocal->nods[commanderLocal->totalNods].dir = TRANSFER_READ;
     commanderLocal->nods[commanderLocal->totalNods].writeBufferSize = nodWrtiteBufferSize;
     commanderLocal->nods[commanderLocal->totalNods].readBufferSize = nodReadBufferSize;
+    commanderLocal->nods[commanderLocal->totalNods].success = 0;
     commanderLocal->nods[commanderLocal->totalNods].attepmt = 0;
     commanderLocal->totalNods++;
   }

@@ -6,6 +6,7 @@
 
 //#define I2C_PERIOD_US 1500
 #define I2C_PERIOD_US 15000
+#define I2C_TRUST_EXCHANGE_PERIODS 10
 #define I2C_RETRY_TIMEOUT_PERIODS 10
 #define I2C_BUS_DEVICE_MAX_COUNT 3
 #define I2C_BUFFER_MAX_SIZE 3
@@ -15,12 +16,14 @@
 
 typedef struct {
   unsigned char connected;
+  unsigned char disconnected;
   unsigned int id;
   unsigned char dir;
   unsigned char writeBuffer[I2C_BUFFER_MAX_SIZE];
   unsigned char writeBufferSize;
   unsigned char readBuffer[I2C_BUFFER_MAX_SIZE];
   unsigned char readBufferSize;
+  unsigned int success;
   unsigned int attepmt;
 } I2CNod;
 
