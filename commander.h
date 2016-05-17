@@ -15,8 +15,8 @@
 #define ENDIR34_ADDRESS 0x3A
 
 typedef struct {
-  unsigned char connected;
-  unsigned char disconnected;
+  unsigned char connected; // bool
+  unsigned char disconnected; // bool
   unsigned int id;
   unsigned char dir;
   unsigned char writeBuffer[I2C_BUFFER_MAX_SIZE];
@@ -26,6 +26,15 @@ typedef struct {
   unsigned int success;
   unsigned int attepmt;
 } I2CNod;
+
+typedef struct {
+  unsigned char moving; // bool
+  unsigned char sensZeroPos; // bool
+  unsigned long realPos;
+  unsigned long maxPos;
+  unsigned long realSpeed;
+  unsigned long maxSpeed;
+} Joint;
 
 typedef struct _Commander {
   CommandVault *commandVault;

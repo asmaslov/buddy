@@ -83,6 +83,8 @@ static void commander_ticker(void)
             commandVaultCommander->requests.endir12 &= (commandVaultCommander->status.stat12 | 0x3F);
             commandVaultCommander->requests.endir34 |= (commandVaultCommander->status.stat34 & 0xC0);
             commandVaultCommander->requests.endir34 &= (commandVaultCommander->status.stat34 | 0x3F);
+            comport_uputchar(commandVaultCommander->status.stat12);
+            comport_uputchar(commandVaultCommander->status.stat34);
             commandVault_unlock();
           }
         }
@@ -132,7 +134,7 @@ static void commander_ticker(void)
         TRACE_DEBUG("Trying to reconnect nod id %d\n\r", commanderLocal->nods[commanderLocal->currentNodIdx].id);
         commander_pause();
         i2c_disable();
-        delayMs(200);
+        delayMs(100);
         PIO_Set(&NodPower_pin);
         i2c_enable(&i2c);
         i2c_configureMaster(I2C_FREQ_HZ);

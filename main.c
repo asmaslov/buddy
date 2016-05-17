@@ -19,16 +19,26 @@
 #define MAIN_LOOP_SLOW_DELAY 100000
 #define MAIN_LOOP_FAST_DELAY 100
 
+#define PIN_CLOCK_X {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
+#define PIN_CLOCK_Y {BIT27, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
+#define PIN_CLOCK_ZR {BIT3, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
+#define PIN_CLOCK_ZL {BIT4, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
+#define PINS_CLOCKS PIN_CLOCK_X, PIN_CLOCK_Y, PIN_CLOCK_ZR, PIN_CLOCK_ZL
+#define CLOCK_X  0
+#define CLOCK_Y  1
+#define CLOCK_ZR 2
+#define CLOCK_ZL 3
+
 static const Pin NodPower_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT};
-static const Pin Clock_pin = {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT};
+static const Pin Clocks_pins[] = { PINS_CLOCKS };
 static const Pin Buttons_pins[] = { PINS_PUSHBUTTONS };
 static const Pin Joystick_pins[] = { PINS_JOYSTICK };
 
 #define KOEFF_END 1
 #define KOEFF_SLOW 2
 #define KOEFF_FAST 5
-#define STEP_MAX 5000
-#define STEP_MIN 1000
+#define STEP_MAX 2000
+#define STEP_MIN 100
 
 volatile unsigned int ppin = 0;
 volatile unsigned int tcrc = 100;
@@ -60,12 +70,18 @@ void ISR_Tc0(void)
     if(ppin == 1)
     {
       ppin = 0;
-      PIO_Clear(&Clock_pin);
+      PIO_Clear(&Clocks_pins[CLOCK_X]);
+      PIO_Clear(&Clocks_pins[CLOCK_Y]);
+      PIO_Clear(&Clocks_pins[CLOCK_ZR]);
+      PIO_Clear(&Clocks_pins[CLOCK_ZL]);
     }
     else
     {
       ppin = 1;
-      PIO_Set(&Clock_pin);
+      PIO_Set(&Clocks_pins[CLOCK_X]);
+      PIO_Set(&Clocks_pins[CLOCK_Y]);
+      PIO_Set(&Clocks_pins[CLOCK_ZR]);
+      PIO_Set(&Clocks_pins[CLOCK_ZL]);
     }
   }
   
@@ -233,8 +249,8 @@ int main(void)
   // ---
 
   PIO_Configure(&NodPower_pin, 1);
-  PIO_Configure(&Clock_pin, 1);
-
+  PIO_Configure(Clocks_pins,  PIO_LISTSIZE(Clocks_pins));
+  
   TRACE_DEBUG("Initialization complete\n\r");
   
   // Power up I2C nods
