@@ -14,7 +14,7 @@ static CommandVault *commandVault;
 static Comport *comport;
 static ReplyPacket reply;
 
-static const Pin NodPower_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT};
+static const Pin NodPower_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 
 Parser parser;
 I2c i2c;
@@ -131,12 +131,12 @@ static void commander_ticker(void)
       if(commander->nods[commander->currentNodIdx].attepmt == I2C_RETRY_TIMEOUT_PERIODS)
       {
         commander->nods[commander->currentNodIdx].attepmt = 0;
-        PIO_Clear(&NodPower_pin);
+        PIO_Set(&NodPower_pin);
         TRACE_DEBUG("Trying to reconnect nod id %d\n\r", commander->nods[commander->currentNodIdx].id);
         commander_pause();
         i2c_disable();
         delayMs(500);
-        PIO_Set(&NodPower_pin);
+        PIO_Clear(&NodPower_pin);
         i2c_enable(&i2c);
         i2c_configureMaster(I2C_FREQ_HZ);
         commander_resume();
@@ -217,7 +217,7 @@ void commander_start(void)
   if(commander->totalNods > 0)
   {
     // Power up I2C nods
-    PIO_Set(&NodPower_pin);
+    PIO_Clear(&NodPower_pin);
     delayMs(200);
     commander_configurePit();
   }
@@ -230,7 +230,7 @@ void commander_start(void)
 void commander_stop(void)
 {
   SANITY_CHECK(commander);
-  PIO_Clear(&NodPower_pin);
+  PIO_Set(&NodPower_pin);
   PIT_DisableIT();
   commander->timestamp = 0;
   commander->currentNodIdx = 0;
