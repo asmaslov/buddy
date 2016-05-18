@@ -31,7 +31,7 @@ typedef struct {
   unsigned long maxPos;
   unsigned long realSpeed;
   unsigned long maxSpeed;
-  unsigned long clockFreq;
+  unsigned int clockFreq;
 } Joint;
 
 typedef struct {
@@ -43,7 +43,16 @@ typedef struct {
   unsigned int realzl;
 } Manipulator;
 
+typedef struct {
+  unsigned long tick;
+  unsigned long compare;
+  unsigned int mastertick;
+  unsigned int divide;
+} SoftwareTimer;
+
 void manipulator_init(Manipulator *m, CommandVault *cv);
+
+void manipulator_configure(void);
 
 void manipulator_unfreeze(void);
 

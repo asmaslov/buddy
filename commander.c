@@ -205,7 +205,7 @@ void commander_configurePit(void)
 {
   PIT_Init(I2C_PERIOD_US, BOARD_MCK / 1000000);
   AIC_DisableIT(AT91C_ID_SYS);
-  AIC_ConfigureIT(AT91C_ID_SYS, AT91C_AIC_PRIOR_HIGHEST, commander_ticker);
+  AIC_ConfigureIT(AT91C_ID_SYS, AT91C_AIC_PRIOR_LOWEST, commander_ticker);
   AIC_EnableIT(AT91C_ID_SYS);
   PIT_EnableIT();
   PIT_Enable();

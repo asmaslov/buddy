@@ -8,18 +8,12 @@
 static Manipulator *manipulator;
 static CommandVault *commandVault;
 
-volatile unsigned int ppin = 0;
-volatile unsigned int tcrc = 100;
-volatile unsigned int step = STEP_MIN;
-volatile unsigned int koeff = KOEFF_END;
-
-volatile unsigned char tickEnable = FALSE;
-volatile unsigned char go_right = TRUE;
-volatile unsigned char go_left = FALSE;
-
+static SoftwareTimer jointsTimers[TOTAL_JOINTS];
+static SoftwareTimer mathTimer;
+volatile unsigned char motorsTickerEnable = FALSE;
 static const Pin Clocks_pins[] = { PINS_CLOCKS };
 
-static void ISR_Tc0(void)
+static void mainTimerHandler(void)
 {
   SANITY_CHECK(manipulator);
   // Clear status bit to acknowledge interrupt
@@ -29,37 +23,21 @@ static void ISR_Tc0(void)
 
   
   // TODO:
-  //  timerStep1++;
-  //  timerStep2++;
-  //  timerStep3++;
-  
-  // Do
-  tcrc = 46875 / (manipulator->globalSpeedPercentage * koeff);
-  AT91C_BASE_TC0->TC_RC = tcrc;
-
-  TC_Start(AT91C_BASE_TC0);
-     
-  if(tickEnable)
+  if(motorsTickerEnable)
   {
-    if(ppin == 1)
+    for(int i = 0; i < TOTAL_JOINTS; i++)
     {
-      ppin = 0;
-      PIO_Clear(&Clocks_pins[JOINT_X]);
-      PIO_Clear(&Clocks_pins[JOINT_Y]);
-      PIO_Clear(&Clocks_pins[JOINT_ZR]);
-      PIO_Clear(&Clocks_pins[JOINT_ZL]);
-    }
-    else
-    {
-      ppin = 1;
-      PIO_Set(&Clocks_pins[JOINT_X]);
-      PIO_Set(&Clocks_pins[JOINT_Y]);
-      PIO_Set(&Clocks_pins[JOINT_ZR]);
-      PIO_Set(&Clocks_pins[JOINT_ZL]);
-    }
+      if(++jointsTimers[i].tick == jointsTimers[i].compare)
+      {
+        if(++jointsTimers[i].mastertick == jointsTimers[i].divide)
+        {
+          PIO_Invert(&Clocks_pins[i]);
+        }
+      }
+    }  
   }
   
-  if(go_right)
+  /*if(go_right)
   {
     step++;
     if(step > STEP_MAX - STEP_MIN)
@@ -112,7 +90,7 @@ static void ISR_Tc0(void)
       commandVault->requests.endir34 &= ~(1 << 3);
       commandVault_unlock();
     }
-  }  
+  }*/
 }
 
 static void manipulator_enableTimer(void)
@@ -131,12 +109,9 @@ static void manipulator_enableTimer(void)
     }
     TRACE_DEBUG("Timer Multiplicator = %d\n\r", multiplicator );
     TRACE_DEBUG("Maximum frequency = %d Hz\n\r", (BOARD_MCK / div) / AT91C_BASE_TC0->TC_RC);
-        
-    // Configure and enable interrupt on RC compare
-    AIC_ConfigureIT(AT91C_ID_TC0, AT91C_AIC_PRIOR_HIGHEST, ISR_Tc0);
+    AIC_ConfigureIT(AT91C_ID_TC0, AT91C_AIC_PRIOR_HIGHEST, mainTimerHandler);
     AT91C_BASE_TC0->TC_IER = AT91C_TC_CPCS;
     AIC_EnableIT(AT91C_ID_TC0);
-
     TC_Start(AT91C_BASE_TC0);
 }
 
@@ -155,10 +130,24 @@ void manipulator_init(Manipulator *m, CommandVault *cv)
     manipulator->joints[i].realSpeed = 0;
     manipulator->joints[i].maxSpeed = 0;
     manipulator->joints[i].clockFreq = 0;
+    jointsTimers[i].tick = 0;
+    jointsTimers[i].compare = 0;
+    jointsTimers[i].divide = 1;
   } 
 
   PIO_Configure(Clocks_pins,  PIO_LISTSIZE(Clocks_pins));
   manipulator_enableTimer();
+}
+
+void manipulator_configure(void)
+{
+  // TODO:
+  // 
+  // Calculate compare values for each joint 
+  for(int i = 0; i < TOTAL_JOINTS; i++)
+  {
+    jointsTimers[i].compare = CLOCK_MAX_FREQ / manipulator->joints[i].clockFreq;
+  }
 }
 
 void manipulator_unfreeze(void)

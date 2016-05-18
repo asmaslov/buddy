@@ -98,6 +98,7 @@ int main(void)
   commandVault_init(&commandVault);
   commander_init(&commander, &commandVault, &comport);
   manipulator_init(&manipulator, &commandVault);
+  manipulator_configure();
   
   commander_start();
   delayMs(100);

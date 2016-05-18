@@ -51,6 +51,8 @@ extern void PIO_Clear(const Pin *pin);
 
 extern unsigned char PIO_Get(const Pin *pin);
 
+extern void PIO_Invert(const Pin *pin);
+
 extern unsigned int PIO_GetISR(const Pin *pin);
 
 extern unsigned char PIO_GetOutputDataStatus(const Pin *pin);

@@ -172,6 +172,18 @@ unsigned char PIO_Get(const Pin *pin)
   }
 }
 
+void PIO_Invert(const Pin *pin)
+{
+  if (pin->pio->PIO_ODSR & pin->mask)
+  {
+    pin->pio->PIO_CODR = pin->mask;
+  }
+  else
+  {
+    pin->pio->PIO_SODR = pin->mask;
+  }
+}
+
 unsigned char PIO_GetOutputDataStatus(const Pin *pin)
 {
   if ((pin->pio->PIO_ODSR & pin->mask) == 0)
