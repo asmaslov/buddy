@@ -3,37 +3,37 @@
 #include "aic.h"
 #include "assert.h"
 
-ADC *adcLocal;
+static ADC *adc;
 
 static void adc_handler(void)
 {
-  SANITY_CHECK(adcLocal);
+  SANITY_CHECK(adc);
   unsigned int status;
   status = ADC_GetStatus(AT91C_BASE_ADC);
   if(ADC_IsChannelInterruptStatusSet(status, ADC_TEMP))
   {
     ADC_DisableIt(AT91C_BASE_ADC, ADC_TEMP);  
-    adcLocal->temp = ADC_GetConvertedData(AT91C_BASE_ADC, ADC_TEMP);
+    adc->temp = ADC_GetConvertedData(AT91C_BASE_ADC, ADC_TEMP);
   }  
   if(ADC_IsChannelInterruptStatusSet(status, ADC_TRIM))
   {
     ADC_DisableIt(AT91C_BASE_ADC, ADC_TRIM);
-    adcLocal->trim = ADC_GetConvertedData(AT91C_BASE_ADC, ADC_TRIM);
+    adc->trim = ADC_GetConvertedData(AT91C_BASE_ADC, ADC_TRIM);
   }  
   if(ADC_IsChannelInterruptStatusSet(status, ADC_MIC_IN))
   {
     ADC_DisableIt(AT91C_BASE_ADC, ADC_MIC_IN);
-    adcLocal->micIn = ADC_GetConvertedData(AT91C_BASE_ADC, ADC_MIC_IN);
+    adc->micIn = ADC_GetConvertedData(AT91C_BASE_ADC, ADC_MIC_IN);
   }    
 }
 
 void adc_enable(ADC *a)
 {
   SANITY_CHECK(a);
-  adcLocal = a;
-  adcLocal->temp = 0;
-  adcLocal->trim = 0;
-  adcLocal->micIn = 0;
+  adc = a;
+  adc->temp = 0;
+  adc->trim = 0;
+  adc->micIn = 0;
   //PIO_Configure(ADC_pins, PIO_LISTSIZE(ADC_pins)); 
   ADC_Initialize(AT91C_BASE_ADC,
                  AT91C_ID_ADC,
@@ -72,18 +72,18 @@ void adc_work(void)
 
 unsigned int adc_getTemp(void)
 {
-  SANITY_CHECK(adcLocal);
-  return adc_convertHex2mV(adcLocal->temp);
+  SANITY_CHECK(adc);
+  return adc_convertHex2mV(adc->temp);
 }
 
 unsigned int adc_getTrim(void)
 {
-  SANITY_CHECK(adcLocal);  
-  return adc_convertHex2mV(adcLocal->trim);
+  SANITY_CHECK(adc);  
+  return adc_convertHex2mV(adc->trim);
 }
 
 unsigned int adc_getMicIn(void)
 {
-  SANITY_CHECK(adcLocal);  
-  return adc_convertHex2mV(adcLocal->micIn);
+  SANITY_CHECK(adc);  
+  return adc_convertHex2mV(adc->micIn);
 }

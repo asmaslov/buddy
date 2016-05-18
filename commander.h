@@ -27,15 +27,6 @@ typedef struct {
   unsigned int attepmt;
 } I2CNod;
 
-typedef struct {
-  unsigned char moving; // bool
-  unsigned char sensZeroPos; // bool
-  unsigned long realPos;
-  unsigned long maxPos;
-  unsigned long realSpeed;
-  unsigned long maxSpeed;
-} Joint;
-
 typedef struct _Commander {
   CommandVault *commandVault;
   unsigned long timestamp;

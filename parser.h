@@ -6,10 +6,9 @@
 
 typedef struct _Parser {
   ControlPacket packet;
-  int nextPartIdx;
-  int packetRcvd;
-  int packetGood;
-  int needFeedback;
+  unsigned char nextPartIdx;
+  unsigned char packetRcvd;
+  unsigned char packetGood;
 } Parser;
 
 void parser_enable(Parser *p, CommandVault *cv);

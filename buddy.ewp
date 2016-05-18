@@ -1902,6 +1902,9 @@
         <name>$PROJ_DIR$\debugport.h</name>
       </file>
       <file>
+        <name>$PROJ_DIR$\manipulator.h</name>
+      </file>
+      <file>
         <name>$PROJ_DIR$\parser.h</name>
       </file>
     </group>
@@ -1919,6 +1922,9 @@
     </file>
     <file>
       <name>$PROJ_DIR$\main.c</name>
+    </file>
+    <file>
+      <name>$PROJ_DIR$\manipulator.c</name>
     </file>
     <file>
       <name>$PROJ_DIR$\parser.c</name>

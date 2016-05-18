@@ -5,34 +5,34 @@
 
 #include "assert.h"
 
-PWM *pwmLocal;
+static PWM *pwm;
 
 static void pwm_handler(void)
 {
-  SANITY_CHECK(pwmLocal);
+  SANITY_CHECK(pwm);
   if ((AT91C_BASE_PWMC->PWMC_ISR & AT91C_PWMC_CHID0) == AT91C_PWMC_CHID0)
   {
-    pwmLocal->count++;
-    if (pwmLocal->count == (PWM_FREQUENCY / (MAX_DUTY_CYCLE - MIN_DUTY_CYCLE)))
+    pwm->count++;
+    if (pwm->count == (PWM_FREQUENCY / (MAX_DUTY_CYCLE - MIN_DUTY_CYCLE)))
     {
-      if (pwmLocal->fadeIn)
+      if (pwm->fadeIn)
       {
-        pwmLocal->duty++;
-        if (pwmLocal->duty == MAX_DUTY_CYCLE)
+        pwm->duty++;
+        if (pwm->duty == MAX_DUTY_CYCLE)
         {
-          pwmLocal->fadeIn = 0;
+          pwm->fadeIn = 0;
         }
       }
       else
       { 
-        pwmLocal->duty--;
-        if (pwmLocal->duty == MIN_DUTY_CYCLE)
+        pwm->duty--;
+        if (pwm->duty == MIN_DUTY_CYCLE)
         {
-          pwmLocal->fadeIn = 1;
+          pwm->fadeIn = 1;
         }
       }
-      pwmLocal->count = 0;
-      PWMC_SetDutyCycle(PWM_SPEAKER, pwmLocal->duty);
+      pwm->count = 0;
+      PWMC_SetDutyCycle(PWM_SPEAKER, pwm->duty);
     }
   }  
 }
@@ -40,10 +40,10 @@ static void pwm_handler(void)
 void pwm_enable(PWM *p)
 {
   SANITY_CHECK(p);
-  pwmLocal = p;
-  pwmLocal->count = 0;
-  pwmLocal->duty = MIN_DUTY_CYCLE;
-  pwmLocal->fadeIn = 1;
+  pwm = p;
+  pwm->count = 0;
+  pwm->duty = MIN_DUTY_CYCLE;
+  pwm->fadeIn = 1;
   PIO_Configure(PWMC_pins, PIO_LISTSIZE(PWMC_pins));
   PMC_EnablePeripheral(AT91C_ID_PWMC);
   // Settings:

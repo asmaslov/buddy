@@ -35,6 +35,7 @@ typedef struct _Status {
 
 typedef struct _CommandVault {
   int key;
+  unsigned char needFeedback;
   Values values;
   Holdkeys holdkeys;
   Requests requests;
@@ -48,5 +49,7 @@ void commandVault_lock(void);
 void commandVault_unlock(void);
 
 int commandVault_locked(void);
+
+void commander_reply(void);
 
 #endif //#ifndef COMVAULT_H

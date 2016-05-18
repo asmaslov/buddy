@@ -3,101 +3,158 @@
 #include "bits.h"
 #include "assert.h"
 
-Parser *parserLocal;
-CommandVault *commandVaultParser;
+static Parser *parser;
+static CommandVault *commandVault;
+
+static unsigned char instruction[INSTRUCTION_MAX_LEN];
+static unsigned char instructionLen = 0;
+static unsigned char instructionIdx = 0;
 
 void parser_enable(Parser *p, CommandVault *cv)
 {
   SANITY_CHECK(p);
-  parserLocal = p;
+  parser = p;
   SANITY_CHECK(cv);
-  commandVaultParser = cv;
-  parserLocal->nextPartIdx = 0;
-  parserLocal->packetRcvd = FALSE;
-  parserLocal->packetGood = FALSE;
-  parserLocal->needFeedback = FALSE;
+  commandVault = cv;
+  parser->nextPartIdx = 0;
+  parser->packetRcvd = FALSE;
+  parser->packetGood = FALSE;
+  commandVault->needFeedback = FALSE;
 }
 
 void parser_work(unsigned char *buf, int size)
 {
-  SANITY_CHECK(parserLocal);
-  SANITY_CHECK(commandVaultParser);  
+  SANITY_CHECK(parser);
+  SANITY_CHECK(commandVault);  
   unsigned char recByte;
   int i;
   for(i = 0; i < size; i++)
   {
     recByte = *(buf + i);
-    if(parserLocal->nextPartIdx == 9)
+    if(parser->nextPartIdx == 9)
     {
-      parserLocal->packet.crcL = recByte;
-      parserLocal->nextPartIdx = 0;
-      parserLocal->packetRcvd = TRUE;
+      parser->packet.crcL = recByte;
+      parser->nextPartIdx = 0;
+      parser->packetRcvd = TRUE;
     }
-    if((parserLocal->nextPartIdx < 9) && (parserLocal->nextPartIdx > 1))
+    if(parser->nextPartIdx == 8)
     {
-      parserLocal->packet.bytes[parserLocal->nextPartIdx] = recByte;
-      parserLocal->nextPartIdx += 1;
-    }  
-    if(parserLocal->nextPartIdx == 1)
+      parser->packet.crcH = recByte;
+      parser->nextPartIdx = 9;
+    }
+    if(parser->nextPartIdx == 7)
     {
-      if ((CONTROL_PACKET_0 == recByte)
-       || (CONTROL_PACKET_1 == recByte)
-       || (CONTROL_PACKET_2 == recByte)
-       || (CONTROL_PACKET_3 == recByte))
+      switch (parser->packet.type)
       {
-        parserLocal->packet.type = recByte;
-        parserLocal->nextPartIdx = 2;
+        case CONTROL_PACKET_MANUAL:
+          parser->packet.special.byte = recByte;
+          parser->nextPartIdx = 8;    
+        break;
+        case CONTROL_PACKET_INSTRUCTION:
+          if(instructionLen == 0)
+          {
+            if(recByte == 0)
+            {
+              parser->packet.special.byte = 0;
+              parser->nextPartIdx = 8;    
+            }
+            else
+            {
+              instructionLen = recByte;
+              instructionIdx = 0;
+            }
+          }
+          else
+          {
+            instruction[instructionIdx++] = recByte;
+            if(instructionIdx == instructionLen - 1)
+            {
+              parser->nextPartIdx = 8;
+            }
+          }
+        break;
+      }
+    }
+    if((parser->nextPartIdx < 7) && (parser->nextPartIdx > 1))
+    {
+      parser->packet.bytes[parser->nextPartIdx] = recByte;
+      parser->nextPartIdx += 1;
+    } 
+    if(parser->nextPartIdx == 1)
+    {
+      if ((CONTROL_PACKET_MANUAL == recByte)
+       || (CONTROL_PACKET_INSTRUCTION == recByte))
+      {
+        parser->packet.type = recByte;
+        parser->nextPartIdx = 2;
       }
       else
       {
-        parserLocal->nextPartIdx = 0;
+        parser->nextPartIdx = 0;
       }
     }
-    if((parserLocal->nextPartIdx == 0) && (DEFAULT_UNIT_ADDR == recByte) && (!parserLocal->packetRcvd))
+    if((parser->nextPartIdx == 0) && (DEFAULT_UNIT_ADDR == recByte) && (!parser->packetRcvd))
     {
-      parserLocal->packet.unit = recByte;
-      parserLocal->nextPartIdx = 1;
+      parser->packet.unit = recByte;
+      parser->nextPartIdx = 1;
     }
   }
-  if(parserLocal->packetRcvd)
+  if(parser->packetRcvd)
   {
-    parserLocal->packetRcvd = FALSE;
+    parser->packetRcvd = FALSE;
     // TODO:
     // Check CRC
     // unsigned char checkCRC = 0;
-    parserLocal->packetGood = TRUE;
+    // and do not forget about instruction[]
+    parser->packetGood = TRUE;
   }
-  if(parserLocal->packetGood)
+  if(parser->packetGood)
   {
-    parserLocal->packetGood = FALSE;
-    parserLocal->needFeedback = TRUE;
-    switch (parserLocal->packet.type)
+    parser->packetGood = FALSE; 
+    commandVault_lock();
+    switch (parser->packet.type)
     {
-      case CONTROL_PACKET_0:
-        commandVault_lock();
-        commandVaultParser->values.leftJoyX = parserLocal->packet.leftJoyXs.val * (parserLocal->packet.leftJoyXs.sign == 0 ? 1 : -1);
-        commandVaultParser->values.leftJoyY = parserLocal->packet.leftJoyYs.val * (parserLocal->packet.leftJoyYs.sign == 0 ? 1 : -1);
-        commandVaultParser->values.rightJoyX = parserLocal->packet.rightJoyXs.val * (parserLocal->packet.rightJoyXs.sign == 0 ? 1 : -1);
-        commandVaultParser->values.rightJoyY = parserLocal->packet.rightJoyYs.val * (parserLocal->packet.rightJoyYs.sign == 0 ? 1 : -1);
-        commandVaultParser->holdkeys.crossUp = parserLocal->packet.codes.crossUp;
-        commandVaultParser->holdkeys.crossDown = parserLocal->packet.codes.crossDown;
-        commandVaultParser->holdkeys.crossLeft = parserLocal->packet.codes.crossLeft;
-        commandVaultParser->holdkeys.crossRight = parserLocal->packet.codes.crossRight;
-        commandVaultParser->requests.buttonA = parserLocal->packet.requests.buttonA;
-        commandVaultParser->requests.buttonB = parserLocal->packet.requests.buttonB;
-        commandVaultParser->requests.buttonX = parserLocal->packet.requests.buttonX;
-        commandVaultParser->requests.buttonY = parserLocal->packet.requests.buttonY;
-        commandVault_unlock();
+      case CONTROL_PACKET_MANUAL:
+        switch (parser->packet.codes.segment)
+        {
+          default:
+            commandVault->values.leftJoyX = parser->packet.leftJoyXs.val * (parser->packet.leftJoyXs.sign == 0 ? 1 : -1);
+            commandVault->values.leftJoyY = parser->packet.leftJoyYs.val * (parser->packet.leftJoyYs.sign == 0 ? 1 : -1);
+            commandVault->values.rightJoyX = parser->packet.rightJoyXs.val * (parser->packet.rightJoyXs.sign == 0 ? 1 : -1);
+            commandVault->values.rightJoyY = parser->packet.rightJoyYs.val * (parser->packet.rightJoyYs.sign == 0 ? 1 : -1);
+            commandVault->holdkeys.crossUp = parser->packet.codes.crossUp;
+            commandVault->holdkeys.crossDown = parser->packet.codes.crossDown;
+            commandVault->holdkeys.crossLeft = parser->packet.codes.crossLeft;
+            commandVault->holdkeys.crossRight = parser->packet.codes.crossRight;
+            commandVault->requests.buttonA = parser->packet.special.buttonA;
+            commandVault->requests.buttonB = parser->packet.special.buttonB;
+            commandVault->requests.buttonX = parser->packet.special.buttonX;
+            commandVault->requests.buttonY = parser->packet.special.buttonY;        
+        }
       break;      
-      case CONTROL_PACKET_1:
-
-      break;      
-      case CONTROL_PACKET_2:
-
-      break;      
-      case CONTROL_PACKET_3:
-
-      break;      
+      case CONTROL_PACKET_INSTRUCTION:
+        if(instructionLen != 0)
+        {
+          switch (instruction[0])
+          {
+            case INSTRUCTION_GOTO_XY:
+            
+            break;
+            case INSTRUCTION_R_GOTO_Z:
+            
+            break;
+            case INSTRUCTION_L_GOTO_Z:
+            
+            break;
+          }
+          // TODO:
+          // Execute command interpreter
+          instructionLen = 0;
+          
+          commandVault->needFeedback = TRUE;
+        }
+      break;            
     }
+    commandVault_unlock();
   }  
 }

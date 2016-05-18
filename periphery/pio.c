@@ -199,7 +199,7 @@ static void PIO_InterruptHandler(unsigned int id, AT91S_PIO *pPio)
   // Check pending events
   if (status != 0)
   {
-    TRACE_DEBUG("PIO interrupt on PIO controller #%d\n\r", id);
+    //TRACE_DEBUG("PIO interrupt on PIO controller #%d\n\r", id);
     // Find triggering source
     i = 0;
     while (status != 0)
@@ -212,7 +212,7 @@ static void PIO_InterruptHandler(unsigned int id, AT91S_PIO *pPio)
         // Source has PIOs whose statuses have changed
         if ((status & sources[i].pin->mask) != 0)
         {
-          TRACE_DEBUG("Interrupt source #%d triggered\n\r", i);
+          //TRACE_DEBUG("Interrupt source #%d triggered\n\r", i);
           sources[i].handler(sources[i].pin);
           status &= ~(sources[i].pin->mask);
         }
@@ -230,19 +230,19 @@ static void PIO_CommonInterruptHandler(void)
 
 void PIO_InitializeInterrupts(unsigned int priority)
 {
-  TRACE_DEBUG("PIO_Initialize()\n\r");
+  //TRACE_DEBUG("PIO_Initialize()\n\r");
   SANITY_CHECK((priority & ~AT91C_AIC_PRIOR) == 0);
   // Reset sources
   numSources = 0;
   // Configure PIO interrupt sources A
-  TRACE_DEBUG("PIO_Initialize: Configuring PIOA\n\r");
+  //TRACE_DEBUG("PIO_Initialize: Configuring PIOA\n\r");
   AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_PIOA;
   AT91C_BASE_PIOA->PIO_ISR;
   AT91C_BASE_PIOA->PIO_IDR = 0xFFFFFFFF;
   AIC_ConfigureIT(AT91C_ID_PIOA, priority, PIO_CommonInterruptHandler);
   AIC_EnableIT(AT91C_ID_PIOA);
   // Configure PIO interrupt sources B
-  TRACE_DEBUG("PIO_Initialize: Configuring PIOB\n\r");
+  //TRACE_DEBUG("PIO_Initialize: Configuring PIOB\n\r");
   AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_PIOB;
   AT91C_BASE_PIOB->PIO_ISR;
   AT91C_BASE_PIOB->PIO_IDR = 0xFFFFFFFF;
@@ -253,10 +253,10 @@ void PIO_InitializeInterrupts(unsigned int priority)
 void PIO_ConfigureIt(const Pin *pin,
                      PinHandler handler)
 {
-  TRACE_DEBUG("PIO_ConfigureIt()\n\r");
+  //TRACE_DEBUG("PIO_ConfigureIt()\n\r");
   ASSERT(numSources < MAX_INTERRUPT_SOURCES, "-F- PIO_ConfigureIt: Increase MAX_INTERRUPT_SOURCES\n\r");
   // Define new source
-  TRACE_DEBUG("PIO_ConfigureIt: Defining new source #%d.\n\r", numSources);
+  //TRACE_DEBUG("PIO_ConfigureIt: Defining new source #%d.\n\r", numSources);
   sources[numSources].pin = pin;
   sources[numSources].handler = handler;
   numSources++;
@@ -264,7 +264,7 @@ void PIO_ConfigureIt(const Pin *pin,
 
 void PIO_EnableIt(const Pin *pPin)
 {
-  TRACE_DEBUG("PIO_EnableIt()\n\r");
+  //TRACE_DEBUG("PIO_EnableIt()\n\r");
   SANITY_CHECK(pPin);
   #ifndef NOASSERT
     unsigned int i = 0;
@@ -286,6 +286,6 @@ void PIO_EnableIt(const Pin *pPin)
 void PIO_DisableIt(const Pin *pPin)
 {
   SANITY_CHECK(pPin);
-  TRACE_DEBUG("PIO_DisableIt()\n\r");
+  //TRACE_DEBUG("PIO_DisableIt()\n\r");
   pPin->pio->PIO_IDR = pPin->mask;
 }

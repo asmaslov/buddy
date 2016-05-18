@@ -1,46 +1,48 @@
 #include "comvault.h"
+#include "bits.h"
 
 #include "assert.h"
 
-CommandVault *commandVaultLocal;
+static CommandVault *commandVault;
 
 void commandVault_init(CommandVault *cv)
 {
   SANITY_CHECK(cv);
-  commandVaultLocal = cv;
-  commandVaultLocal->key = 0;
-  commandVaultLocal->values.leftJoyX = 0;
-  commandVaultLocal->values.leftJoyY = 0;
-  commandVaultLocal->values.rightJoyX = 0;
-  commandVaultLocal->values.rightJoyY = 0;
-  commandVaultLocal->holdkeys.crossUp = 0;
-  commandVaultLocal->holdkeys.crossDown = 0;
-  commandVaultLocal->holdkeys.crossLeft = 0;
-  commandVaultLocal->holdkeys.crossRight = 0;
-  commandVaultLocal->requests.buttonA = 0;
-  commandVaultLocal->requests.buttonB = 0;
-  commandVaultLocal->requests.buttonX = 0;
-  commandVaultLocal->requests.buttonY = 0;
+  commandVault = cv;
+  commandVault->key = 0;
+  commandVault->needFeedback = FALSE;
+  commandVault->values.leftJoyX = 0;
+  commandVault->values.leftJoyY = 0;
+  commandVault->values.rightJoyX = 0;
+  commandVault->values.rightJoyY = 0;
+  commandVault->holdkeys.crossUp = 0;
+  commandVault->holdkeys.crossDown = 0;
+  commandVault->holdkeys.crossLeft = 0;
+  commandVault->holdkeys.crossRight = 0;
+  commandVault->requests.buttonA = 0;
+  commandVault->requests.buttonB = 0;
+  commandVault->requests.buttonX = 0;
+  commandVault->requests.buttonY = 0;
 
-  commandVaultLocal->requests.endir12 = 0;
-  commandVaultLocal->requests.endir34 = 0;
+  commandVault->requests.endir12 = 0;
+  commandVault->requests.endir34 = 0;
 }
 
 void commandVault_lock(void)
 {
-  SANITY_CHECK(commandVaultLocal);
-  while(commandVaultLocal->key);
-  commandVaultLocal->key = 1;
+  SANITY_CHECK(commandVault);
+  while(commandVault->key);
+  commandVault->key = 1;
 }
 
 void commandVault_unlock(void)
 {
-  SANITY_CHECK(commandVaultLocal);
-  commandVaultLocal->key = 0;
+  SANITY_CHECK(commandVault);
+  commandVault->key = 0;
 }
 
 int commandVault_locked(void)
 {
-  SANITY_CHECK(commandVaultLocal);
-  return commandVaultLocal->key;
+  SANITY_CHECK(commandVault);
+  return commandVault->key;
 }

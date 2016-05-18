@@ -9,15 +9,19 @@
 #define DEFAULT_UNIT_ADDR 0x0F
 #define DEFAULT_PAD_ADDR 0x8F
 
-#define CONTROL_PACKET_0 0xFF
-#define CONTROL_PACKET_1 0xFE
-#define CONTROL_PACKET_2 0xFD
-#define CONTROL_PACKET_3 0xFC
+#define CONTROL_PACKET_MANUAL 0xFF
+#define CONTROL_PACKET_INSTRUCTION 0xFE
+
+#define INSTRUCTION_MAX_LEN 256
 
 #define REPLY_PACKET_0 0xEF
 #define REPLY_PACKET_1 0xEE
 #define REPLY_PACKET_2 0xED
 #define REPLY_PACKET_3 0xEC
+
+#define INSTRUCTION_GOTO_XY  0
+#define INSTRUCTION_R_GOTO_Z 1
+#define INSTRUCTION_L_GOTO_Z 2
 
 typedef union {
   unsigned char bytes[PACKET_LEN];
@@ -55,11 +59,11 @@ typedef union {
     union {
       unsigned char byte;
       struct {
+        unsigned char segment : 4;
         unsigned char crossUp : 1;
         unsigned char crossDown : 1;
         unsigned char crossLeft : 1;
         unsigned char crossRight : 1;
-        unsigned char segment : 4;
       };
     } codes;
     union {
@@ -74,7 +78,7 @@ typedef union {
         unsigned char buttonR1 : 1;
         unsigned char buttonR2 : 1;
       };
-    } requests;
+    } special;
     unsigned char crcH;
     unsigned char crcL;
   };  

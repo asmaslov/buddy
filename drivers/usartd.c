@@ -8,34 +8,34 @@
 #include <stdarg.h>
 #include <string.h>
 
-Comport *comportUsartd;
+static Comport *comport;
 
 static void comport_handler0(void)
 {
-  SANITY_CHECK(comportUsartd);
+  SANITY_CHECK(comport);
   AIC_ClearIT(AT91C_ID_US0);
   unsigned int status;
   status = AT91C_BASE_US0->US_CSR;
   if ((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
   {
-    if(comportUsartd->parser)
+    if(comport->parser)
     {
-      comportUsartd->parser(comportUsartd->readBuffer, USART_BUFFER_SIZE);
+      comport->parser(comport->readBuffer, USART_BUFFER_SIZE);
     }
-    USART_ReadBuffer(AT91C_BASE_US0, comportUsartd->readBuffer, USART_BUFFER_SIZE);
+    USART_ReadBuffer(AT91C_BASE_US0, comport->readBuffer, USART_BUFFER_SIZE);
   }
   AIC_FinishIT();
 }
 
 static void comport_handler1(void)
 {
-  SANITY_CHECK(comportUsartd);
+  SANITY_CHECK(comport);
 }
 
 void comport_enable(Comport *cp)
 {
   SANITY_CHECK(cp);
-  comportUsartd = cp;
+  comport = cp;
   PIO_Configure(USART0_pins, PIO_LISTSIZE(USART0_pins)); 
   PMC_EnablePeripheral(AT91C_ID_US0);
 }
@@ -50,12 +50,12 @@ void comport_disable(void)
 void comport_configure(unsigned char portnum,
                        unsigned int speed)
 {
-  SANITY_CHECK(comportUsartd);
+  SANITY_CHECK(comport);
   unsigned int mode, ipt;
   switch(portnum)
   {
     case USART0:
-      comportUsartd->port = USART0;
+      comport->port = USART0;
       mode = AT91C_US_USMODE_NORMAL
            | AT91C_US_CLKS_CLOCK
            | AT91C_US_CHRL_8_BITS
@@ -67,14 +67,14 @@ void comport_configure(unsigned char portnum,
       AIC_EnableIT(AT91C_ID_US0);
       USART_SetTransmitterEnabled(AT91C_BASE_US0, TRUE);
       USART_SetReceiverEnabled(AT91C_BASE_US0, TRUE);
-      USART_ReadBuffer(AT91C_BASE_US0, comportUsartd->readBuffer, USART_BUFFER_SIZE);
+      USART_ReadBuffer(AT91C_BASE_US0, comport->readBuffer, USART_BUFFER_SIZE);
       ipt = AT91C_US_ENDRX
           | AT91C_US_RXBUFF;
       USART_EnableIt(AT91C_BASE_US0, ipt);
       TRACE_DEBUG("USART0 enabled\n\r");
     break;
     case USART1:
-      comportUsartd->port = USART1;
+      comport->port = USART1;
       TRACE_DEBUG("USART1 is not configured yet\n\r");
     break;
     default:
@@ -84,15 +84,15 @@ void comport_configure(unsigned char portnum,
 
 void comport_setParserFunc(ParserFunc pfunc)
 {
-  SANITY_CHECK(comportUsartd);
+  SANITY_CHECK(comport);
   SANITY_CHECK(pfunc);
-  comportUsartd->parser = pfunc;
+  comport->parser = pfunc;
 }
 
 void comport_uputchar(char c)
 {
-  SANITY_CHECK(comportUsartd);
-  switch(comportUsartd->port)
+  SANITY_CHECK(comport);
+  switch(comport->port)
   {
     case USART0:
       USART_Write(AT91C_BASE_US0, c, TIMEOUT);
@@ -121,7 +121,7 @@ void comport_uprintf(char *str, ...)
 
 void comport_udmaprintf(char *str, ...)
 {
-  SANITY_CHECK(comportUsartd);
+  SANITY_CHECK(comport);
   unsigned int len;
   va_list arg;
   va_start(arg, str);
@@ -129,7 +129,7 @@ void comport_udmaprintf(char *str, ...)
   memset(&buffer, 0, sizeof(buffer));
   len = vsprintf(buffer, str, arg);
   va_end(arg);
-  switch(comportUsartd->port)
+  switch(comport->port)
   {
     case USART0:
       USART_WriteBuffer(AT91C_BASE_US0, buffer, len);
@@ -142,8 +142,8 @@ void comport_udmaprintf(char *str, ...)
 
 unsigned char comport_ugetchar(void)
 {
-  SANITY_CHECK(comportUsartd);
-  switch(comportUsartd->port)
+  SANITY_CHECK(comport);
+  switch(comport->port)
   {
     case USART0:
       return USART_Read(AT91C_BASE_US0, TIMEOUT);

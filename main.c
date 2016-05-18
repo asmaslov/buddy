@@ -1,199 +1,59 @@
+#include "pio.h"
 #include "assert.h"
 #include "adcd.h"
 #include "pwmcd.h"
-
-#include "pio.h"
-
-#include "tc.h"
-#include "aic.h"
-
 #include "lcd.h"
 #include "usartd.h"
-
 #include "comvault.h"
 #include "commander.h"
+#include "manipulator.h"
 
 #include "delay.h"
 
 #include <stdio.h>
+
+#define DEBOUNCE_TIME 20 // Times of I2C_PERIOD_US
+
 #define MAIN_LOOP_SLOW_DELAY 100000
 #define MAIN_LOOP_FAST_DELAY 100
 
-#define PIN_CLOCK_X {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
-#define PIN_CLOCK_Y {BIT27, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
-#define PIN_CLOCK_ZR {BIT3, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
-#define PIN_CLOCK_ZL {BIT4, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
-#define PINS_CLOCKS PIN_CLOCK_X, PIN_CLOCK_Y, PIN_CLOCK_ZR, PIN_CLOCK_ZL
-#define CLOCK_X  0
-#define CLOCK_Y  1
-#define CLOCK_ZR 2
-#define CLOCK_ZL 3
+#define MAX_TRIM_VALUE 100
 
-static const Pin NodPower_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT};
-static const Pin Clocks_pins[] = { PINS_CLOCKS };
 static const Pin Buttons_pins[] = { PINS_PUSHBUTTONS };
 static const Pin Joystick_pins[] = { PINS_JOYSTICK };
+static unsigned long sw1HandlerTimestamp = 0;
+static unsigned long sw2HandlerTimestamp = 0;
 
-#define KOEFF_END 1
-#define KOEFF_SLOW 2
-#define KOEFF_FAST 5
-#define STEP_MAX 2000
-#define STEP_MIN 100
-
-volatile unsigned int ppin = 0;
-volatile unsigned int tcrc = 100;
-volatile unsigned int step = STEP_MIN;
-volatile unsigned int koeff = KOEFF_END;
-
-volatile unsigned char tickEnable = FALSE;
-volatile unsigned char go_right = TRUE;
-volatile unsigned char go_left = FALSE;
-  
+// Global objects
+Manipulator manipulator;
 CommandVault commandVault;
 Comport comport;
-
-void ISR_Tc0(void)
-{
-  // Clear status bit to acknowledge interrupt
-  unsigned int dummy;
-  dummy = AT91C_BASE_TC0->TC_SR;
-  dummy = dummy;
-
-  // Do
-     
-  AT91C_BASE_TC0->TC_RC = tcrc;
-
-  TC_Start(AT91C_BASE_TC0);
-     
-  if(tickEnable)
-  {
-    if(ppin == 1)
-    {
-      ppin = 0;
-      PIO_Clear(&Clocks_pins[CLOCK_X]);
-      PIO_Clear(&Clocks_pins[CLOCK_Y]);
-      PIO_Clear(&Clocks_pins[CLOCK_ZR]);
-      PIO_Clear(&Clocks_pins[CLOCK_ZL]);
-    }
-    else
-    {
-      ppin = 1;
-      PIO_Set(&Clocks_pins[CLOCK_X]);
-      PIO_Set(&Clocks_pins[CLOCK_Y]);
-      PIO_Set(&Clocks_pins[CLOCK_ZR]);
-      PIO_Set(&Clocks_pins[CLOCK_ZL]);
-    }
-  }
-  
-  if(go_right)
-  {
-    step++;
-    if(step > STEP_MAX - STEP_MIN)
-    {
-      koeff = KOEFF_END;
-    }
-    else if(step > STEP_MAX - (2 * STEP_MIN))
-    {
-      koeff = KOEFF_SLOW;
-    }
-    else      
-    {
-      koeff = KOEFF_FAST;
-    }
-    if(step > STEP_MAX)
-    {
-      go_right = FALSE;
-      go_left = TRUE;
-      commandVault_lock();
-      commandVault.requests.endir12 &= ~(1 << 1);
-      commandVault.requests.endir12 &= ~(1 << 3);
-      commandVault.requests.endir34 &= ~(1 << 1);
-      commandVault.requests.endir34 |= (1 << 3);
-      commandVault_unlock();
-    }
-  }
-  if(go_left)
-  {
-    step--;
-    if(step < STEP_MIN + STEP_MIN)
-    {
-      koeff = KOEFF_END;
-    }
-    else if(step < STEP_MIN + (2 * STEP_MIN))
-    {
-      koeff = KOEFF_SLOW;
-    }      
-    else      
-    {
-      koeff = KOEFF_FAST;
-    }
-    if(step < STEP_MIN)
-    {
-      go_right = TRUE;
-      go_left = FALSE;
-      commandVault_lock();
-      commandVault.requests.endir12 |= (1 << 1);
-      commandVault.requests.endir12 |= (1 << 3);
-      commandVault.requests.endir34 |= (1 << 1);
-      commandVault.requests.endir34 &= ~(1 << 3);
-      commandVault_unlock();
-    }
-  }  
-}
-
-void ConfigureTc(void)
-{
-    unsigned int div;
-    unsigned int tcclks;
-
-    // Enable peripheral clock
-    AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_TC0;
-
-    // Configure TC for a 4Hz frequency and trigger on RC compare
-    TC_FindMckDivisor(100, BOARD_MCK, &div, &tcclks);
-    TC_Configure(AT91C_BASE_TC0, tcclks | AT91C_TC_CPCTRG); 
-    AT91C_BASE_TC0->TC_RC = (BOARD_MCK / div) / 1000; // timerFreq / desiredFreq
-    
-    // Configure and enable interrupt on RC compare
-    AIC_ConfigureIT(AT91C_ID_TC0, AT91C_AIC_PRIOR_HIGHEST, ISR_Tc0);
-    AT91C_BASE_TC0->TC_IER = AT91C_TC_CPCS;
-    AIC_EnableIT(AT91C_ID_TC0);
-
-    TC_Start(AT91C_BASE_TC0);
-}
+Commander commander;
+// --
 
 static void sw1Handler(void)
 {
-  TRACE_DEBUG("sw1 interrupt handler");
   if(!PIO_Get(&Buttons_pins[PUSHBUTTON_BP1]))
   {
-    step = STEP_MIN;
-    go_right = TRUE;
-    go_left = FALSE;
-    tickEnable = TRUE;
-    commandVault_lock();
-    commandVault.requests.endir12 |= (1 << 0);
-    commandVault.requests.endir12 |= (1 << 2);
-    commandVault.requests.endir34 |= (1 << 0);
-    commandVault.requests.endir34 |= (1 << 2);
-    commandVault.requests.endir12 |= (1 << 1);
-    commandVault.requests.endir12 |= (1 << 3);
-    commandVault.requests.endir34 |= (1 << 1);
-    commandVault.requests.endir34 &= ~(1 << 3);
-    commandVault_unlock();      
+    if((commander.timestamp - sw1HandlerTimestamp) > DEBOUNCE_TIME)
+    {
+      sw1HandlerTimestamp = commander.timestamp;
+      manipulator_unfreeze();
+      TRACE_DEBUG("Manipulator go\n\r");
+    }    
   }
 }
 
 static void sw2Handler(void)
 {
-  TRACE_DEBUG("sw2 interrupt handler");
   if(!PIO_Get(&Buttons_pins[PUSHBUTTON_BP2]))  
   {
-    tickEnable = FALSE;
-    commandVault.requests.endir12 &=~(1 << 0);
-    commandVault.requests.endir12 &=~(1 << 2);
-    commandVault.requests.endir34 &=~(1 << 0);
-    commandVault.requests.endir34 &=~(1 << 2);
+    if((commander.timestamp - sw2HandlerTimestamp) > DEBOUNCE_TIME)
+    {
+      sw2HandlerTimestamp = commander.timestamp;
+      manipulator_freeze();
+      TRACE_DEBUG("Manipulator stop\n\r");
+    }    
   }
 }
 
@@ -203,28 +63,25 @@ int main(void)
   TRACE_DEBUG("Compiled: %s %s \n\r", __DATE__, __TIME__);
   TRACE_DEBUG("Program start\n\r");
   
-  // Enable buttons and joystick
+  // Enable buttons and joystick, configure interrupts
   PIO_Configure(Buttons_pins, PIO_LISTSIZE(Buttons_pins));
   unsigned char sw1, sw2;
-  
+  PIO_Configure(Joystick_pins, PIO_LISTSIZE(Joystick_pins));
+  unsigned char joyup, joydown, joyleft, joyright, joysw;
   PIO_InitializeInterrupts(AT91C_AIC_PRIOR_LOWEST);
   PIO_ConfigureIt(&Buttons_pins[PUSHBUTTON_BP1], (PinHandler)sw1Handler);
   PIO_ConfigureIt(&Buttons_pins[PUSHBUTTON_BP2], (PinHandler)sw2Handler);
-  PIO_EnableIt(&Buttons_pins[PUSHBUTTON_BP1]);
-  PIO_EnableIt(&Buttons_pins[PUSHBUTTON_BP2]);
- 
-  PIO_Configure(Joystick_pins, PIO_LISTSIZE(Joystick_pins));
-  unsigned char joyup, joydown, joyleft, joyright, joysw;
   // ---
   
   // Create and enable periphery modules
   ADC adc;
   adc_enable(&adc);
+  unsigned int temperature, trimmer, microphone;
   adc_work();
-  unsigned int temperature, trimmer, microphone;  
- 
-  PWM pwm;
-  pwm_enable(&pwm);   
+  //PWM pwm;
+  //pwm_enable(&pwm);
+  comport_enable(&comport);
+  comport_configure(USART0, 57600);
   // ---
   
   // User hello
@@ -237,39 +94,28 @@ int main(void)
   delayMs(500);
   // ---
 
-  // Create and enable main logic modules
-
+  // Launch main logic modules
   commandVault_init(&commandVault);
-  
-  comport_enable(&comport);
-  comport_configure(USART0, 57600);
-  
-  Commander commander;
   commander_init(&commander, &commandVault, &comport);
-  // ---
-
-  PIO_Configure(&NodPower_pin, 1);
-  PIO_Configure(Clocks_pins,  PIO_LISTSIZE(Clocks_pins));
+  manipulator_init(&manipulator, &commandVault);
   
-  TRACE_DEBUG("Initialization complete\n\r");
-  
-  // Power up I2C nods
-  PIO_Set(&NodPower_pin);
-  delayMs(200);
-  
-  // TODO: Make a nice standby mode instead of while(1)
-  unsigned long fastTick = 0;
-  unsigned long slowTick = 0;
-  unsigned char looptrace = FALSE;
-  
-  // Main interrupt-based logic launch
   commander_start();
-  
   delayMs(100);
   
-  // Launch common step ticker
-  ConfigureTc();
-   
+  TRACE_DEBUG("Initialization complete\n\r");
+  // --
+  
+  // Enable controls
+  PIO_EnableIt(&Buttons_pins[PUSHBUTTON_BP1]);
+  PIO_EnableIt(&Buttons_pins[PUSHBUTTON_BP2]);
+  // --
+  
+  // TODO:
+  // Use FreeRTOS
+  unsigned long fastTick = 0;
+  unsigned long slowTick = 0;
+  unsigned char looptrace = FALSE; 
+  
   while(1)
   {
     // Fast and furious
@@ -285,11 +131,11 @@ int main(void)
       joyright = !PIO_Get(&Joystick_pins[JOYSTICK_RIGHT]);
       joysw = !PIO_Get(&Joystick_pins[JOYSTICK_BUTTON]);
       temperature = adc_getTemp();
-      trimmer = adc_getTrim() * 1000 / ADC_VREF;
+      trimmer = adc_getTrim() * MAX_TRIM_VALUE / ADC_VREF;
       microphone = adc_getMicIn();
       adc_work();      
 
-      // Start here
+      // Fast operations
       if(sw1 && sw2 && joyup)
       {
         if(!looptrace)
@@ -307,7 +153,12 @@ int main(void)
         looptrace = FALSE;
       }
       
-      tcrc = 46875 / (trimmer * koeff);
+      manipulator.globalSpeedPercentage = trimmer;
+
+      if(commandVault.needFeedback)
+      {
+        commander_reply();
+      }
       
       if(commandVault.requests.buttonA)
       {
@@ -317,7 +168,7 @@ int main(void)
       {
         TRACE_DEBUG("Button B\n\r");
       }
-      // End here      
+      // --
     }
 
     // Slow and happy
@@ -337,9 +188,9 @@ int main(void)
                   joysw ? '+' : '-',
                   temperature, trimmer, microphone);
 
-      // Start here
+      // Slow operations
     
-      // End here
+      // --
     }
   }
 }
