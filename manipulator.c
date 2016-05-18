@@ -27,6 +27,12 @@ static void ISR_Tc0(void)
   dummy = AT91C_BASE_TC0->TC_SR;
   dummy = dummy;
 
+  
+  // TODO:
+  //  timerStep1++;
+  //  timerStep2++;
+  //  timerStep3++;
+  
   // Do
   tcrc = 46875 / (manipulator->globalSpeedPercentage * koeff);
   AT91C_BASE_TC0->TC_RC = tcrc;
@@ -111,15 +117,21 @@ static void ISR_Tc0(void)
 
 static void manipulator_enableTimer(void)
 {
-    unsigned int div;
-    unsigned int tcclks;
+    unsigned int div = 1;
+    unsigned int tcclks = 0;
+    unsigned int multiplicator = 1;
     TRACE_WARNING("Manipulator uses Timer Counter to operate\n\r");
     AT91C_BASE_PMC->PMC_PCER = 1 << AT91C_ID_TC0;
-    
-    TC_FindMckDivisor(100, BOARD_MCK, &div, &tcclks);
-    TC_Configure(AT91C_BASE_TC0, tcclks | AT91C_TC_CPCTRG); 
-    AT91C_BASE_TC0->TC_RC = (BOARD_MCK / div) / 1000; // timerFreq / desiredFreq
-    
+    while(((BOARD_MCK / div) / AT91C_BASE_TC0->TC_RC) != CLOCK_MAX_FREQ)
+    {
+      TC_FindMckDivisor(CLOCK_MAX_FREQ * multiplicator, BOARD_MCK, &div, &tcclks);
+      TC_Configure(AT91C_BASE_TC0, tcclks | AT91C_TC_CPCTRG);
+      AT91C_BASE_TC0->TC_RC = (BOARD_MCK / div) / CLOCK_MAX_FREQ;  
+      multiplicator++;
+    }
+    TRACE_DEBUG("Timer Multiplicator = %d\n\r", multiplicator );
+    TRACE_DEBUG("Maximum frequency = %d Hz\n\r", (BOARD_MCK / div) / AT91C_BASE_TC0->TC_RC);
+        
     // Configure and enable interrupt on RC compare
     AIC_ConfigureIT(AT91C_ID_TC0, AT91C_AIC_PRIOR_HIGHEST, ISR_Tc0);
     AT91C_BASE_TC0->TC_IER = AT91C_TC_CPCS;
@@ -146,10 +158,7 @@ void manipulator_init(Manipulator *m, CommandVault *cv)
   } 
 
   PIO_Configure(Clocks_pins,  PIO_LISTSIZE(Clocks_pins));
-  // Launch common step ticker
   manipulator_enableTimer();
-
- 
 }
 
 void manipulator_unfreeze(void)
