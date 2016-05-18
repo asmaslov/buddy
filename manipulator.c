@@ -27,9 +27,9 @@ static void mainTimerHandler(void)
   {
     for(int i = 0; i < TOTAL_JOINTS; i++)
     {
-      if(++jointsTimers[i].tick == jointsTimers[i].compare)
+      if(++jointsTimers[i].tick >= jointsTimers[i].compare)
       {
-        if(++jointsTimers[i].mastertick == jointsTimers[i].divide)
+        if(++jointsTimers[i].mastertick >= jointsTimers[i].divide)
         {
           PIO_Invert(&Clocks_pins[i]);
         }
@@ -144,10 +144,10 @@ void manipulator_configure(void)
   // TODO:
   // 
   // Calculate compare values for each joint 
-  for(int i = 0; i < TOTAL_JOINTS; i++)
+  /*for(int i = 0; i < TOTAL_JOINTS; i++)
   {
     jointsTimers[i].compare = CLOCK_MAX_FREQ / manipulator->joints[i].clockFreq;
-  }
+  }*/
 }
 
 void manipulator_unfreeze(void)
@@ -161,7 +161,8 @@ void manipulator_unfreeze(void)
   commandVault->requests.endir12 |= (1 << 3);
   commandVault->requests.endir34 |= (1 << 1);
   commandVault->requests.endir34 &= ~(1 << 3);
-  commandVault_unlock();  
+  commandVault_unlock();
+  motorsTickerEnable = TRUE;
 }
 
 void manipulator_freeze(void)
@@ -172,4 +173,5 @@ void manipulator_freeze(void)
   commandVault->requests.endir34 &=~(1 << 0);
   commandVault->requests.endir34 &=~(1 << 2);
   commandVault_unlock();  
+  motorsTickerEnable = FALSE;
 }

@@ -38,8 +38,8 @@ static void sw1Handler(void)
     if((commander.timestamp - sw1HandlerTimestamp) > DEBOUNCE_TIME)
     {
       sw1HandlerTimestamp = commander.timestamp;
-      manipulator_unfreeze();
       TRACE_DEBUG("Manipulator go\n\r");
+      manipulator_unfreeze();
     }    
   }
 }
@@ -51,8 +51,8 @@ static void sw2Handler(void)
     if((commander.timestamp - sw2HandlerTimestamp) > DEBOUNCE_TIME)
     {
       sw2HandlerTimestamp = commander.timestamp;
-      manipulator_freeze();
       TRACE_DEBUG("Manipulator stop\n\r");
+      manipulator_freeze();
     }    
   }
 }
