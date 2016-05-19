@@ -42,7 +42,7 @@ static void mainTimerHandler(void)
     unsigned char allJointsConnected = TRUE;
     for(int i = 0; i < commander->totalNods; i++)
     {
-      allJointsConnected &= commander->nods[commander->currentNodIdx].connected;
+      allJointsConnected &= commander->nods[i].connected;
     }
     if(motorsTickerEnabled && allJointsConnected)
     {

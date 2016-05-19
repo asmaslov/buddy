@@ -137,15 +137,16 @@ static void commander_ticker(void)
       for(int i = 0; i < commander->totalNods; i++)
       {
         commander->nods[i].attepmt = 0;
+        commander->nods[i].disconnected = FALSE;
+        commander->nods[i].success = 0;
       }
       commander_nodsPowerDown();
       TRACE_DEBUG("Trying to reconnect nod id %d\n\r", commander->nods[commander->currentNodIdx].id);
       i2c_disable();
-      commander_nodsPowerUp();
+      delayUs(100);
       i2c_enable(&i2c);
       i2c_configureMaster(I2C_FREQ_HZ);
-      commander->nods[commander->currentNodIdx].disconnected = FALSE;
-      commander->nods[commander->currentNodIdx].success = 0;
+      commander_nodsPowerUp();
       commander->tickerEnabled = TRUE;
     }
     commander_nextnod();

@@ -132,7 +132,6 @@ unsigned char i2c_read(unsigned char *data,
     }
     TWI_StartRead(AT91C_BASE_TWI, i2c->address, i2c->iaddress, i2c->iaddresslen);
     i2c->transfer.countReal = 0;
-    status = TRUE;
   }
   return status;
 }
@@ -169,7 +168,6 @@ unsigned char i2c_write(unsigned char *data,
     TWI_EnableIt(AT91C_BASE_TWI, AT91C_TWI_TXRDY);
     TWI_StartWrite(AT91C_BASE_TWI, i2c->address, i2c->iaddress, i2c->iaddresslen, *data);
     i2c->transfer.countReal = 1;
-    status = TRUE;
   }
   return status;
 }

@@ -4,10 +4,11 @@
 #include "comvault.h"
 #include "usartd.h"
 
-#define I2C_TRUST_EXCHANGE_PERIODS 10
+#define I2C_TRUST_EXCHANGE_PERIODS 20
 #define I2C_RETRY_TIMEOUT_PERIODS 10
 #define I2C_BUS_DEVICE_MAX_COUNT 3
 #define I2C_BUFFER_MAX_SIZE 3
+//#define USE_ASYNC_I2C_DRIVER
 
 #define ENDIR12_ADDRESS 0x39
 #define ENDIR34_ADDRESS 0x3A
