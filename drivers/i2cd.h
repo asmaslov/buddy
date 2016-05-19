@@ -21,8 +21,6 @@
 #define TRANSFER_WRITE 0
 #define TRANSFER_READ 1
 
-#define USE_NOW
-
 static const Pin TWI_pins[] = { PINS_TWI };
 
 typedef struct _Transfer {

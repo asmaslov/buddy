@@ -1,4 +1,6 @@
 #include "pio.h"
+#include "aic.h"
+#include "pit.h"
 #include "assert.h"
 #include "adcd.h"
 #include "pwmcd.h"
@@ -23,21 +25,23 @@ static const Pin Buttons_pins[] = { PINS_PUSHBUTTONS };
 static const Pin Joystick_pins[] = { PINS_JOYSTICK };
 static unsigned long sw1HandlerTimestamp = 0;
 static unsigned long sw2HandlerTimestamp = 0;
+static unsigned long timestamp = 0;
 
 // Global objects
 Manipulator manipulator;
 CommandVault commandVault;
 Comport comport;
 Commander commander;
+CommanderTicker commanderTicker;
 // --
 
 static void sw1Handler(void)
 {
   if(!PIO_Get(&Buttons_pins[PUSHBUTTON_BP1]))
   {
-    if((commander.timestamp - sw1HandlerTimestamp) > DEBOUNCE_TIME)
+    if((timestamp - sw1HandlerTimestamp) > DEBOUNCE_TIME)
     {
-      sw1HandlerTimestamp = commander.timestamp;
+      sw1HandlerTimestamp = timestamp;
       TRACE_DEBUG("Manipulator go\n\r");
       manipulator_unfreeze();
     }    
@@ -48,13 +52,33 @@ static void sw2Handler(void)
 {
   if(!PIO_Get(&Buttons_pins[PUSHBUTTON_BP2]))  
   {
-    if((commander.timestamp - sw2HandlerTimestamp) > DEBOUNCE_TIME)
+    if((timestamp - sw2HandlerTimestamp) > DEBOUNCE_TIME)
     {
-      sw2HandlerTimestamp = commander.timestamp;
+      sw2HandlerTimestamp = timestamp;
       TRACE_DEBUG("Manipulator stop\n\r");
       manipulator_freeze();
     }    
   }
+}
+
+static void systemTicker(void)
+{
+  unsigned int status;
+  status = PIT_GetStatus() & AT91C_PITC_PITS;
+  if (status != 0)
+  {
+    timestamp += (PIT_GetPIVR() >> 20);
+  }
+}
+
+void configurePit(void)
+{
+  PIT_Init(I2C_PERIOD_US, BOARD_MCK / 1000000);
+  AIC_DisableIT(AT91C_ID_SYS);
+  AIC_ConfigureIT(AT91C_ID_SYS, AT91C_AIC_PRIOR_LOWEST, systemTicker);
+  AIC_EnableIT(AT91C_ID_SYS);
+  PIT_EnableIT();
+  PIT_Enable();
 }
 
 int main(void)
@@ -62,6 +86,10 @@ int main(void)
   TRACE_INFO("Firmware version 0.0.1 unstable\n\r");
   TRACE_DEBUG("Compiled: %s %s \n\r", __DATE__, __TIME__);
   TRACE_DEBUG("Program start\n\r");
+  
+  // Start system ticker
+  configurePit();
+  // --
   
   // Enable buttons and joystick, configure interrupts
   PIO_Configure(Buttons_pins, PIO_LISTSIZE(Buttons_pins));
@@ -94,13 +122,13 @@ int main(void)
   delayMs(500);
   // ---
 
-  // Launch main logic modules
+  // Launch main logic modules, order is important
   commandVault_init(&commandVault);
-  commander_init(&commander, &commandVault, &comport);
-  manipulator_init(&manipulator, &commandVault);
-  manipulator_configure();
+  commanderTicker = commander_init(&commander, &commandVault, &comport);
+  manipulator_init(&manipulator, &commander, &commandVault);
+  manipulator_configure(commanderTicker);
   
-  commander_start();
+  commander_nodsPowerUp();
   delayMs(100);
   
   TRACE_DEBUG("Initialization complete\n\r");

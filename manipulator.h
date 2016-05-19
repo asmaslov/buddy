@@ -2,6 +2,7 @@
 #define MANIPULATOR_H
 
 #include "comvault.h"
+#include "commander.h"
 
 #define TOTAL_JOINTS 4
 #define JOINT_X  0
@@ -15,9 +16,12 @@
 #define PIN_CLOCK_ZL {BIT4, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
 #define PINS_CLOCKS PIN_CLOCK_X, PIN_CLOCK_Y, PIN_CLOCK_ZR, PIN_CLOCK_ZL
 
-//#define CLOCK_MAX_FREQ 300000 // Hz
-#define CLOCK_MAX_FREQ 10000 // Hz
-#define MATH_FREQ 100 // Hz
+#define CLOCK_MAX_FREQ_HZ 300000
+#define CLOCK_FREQ_HZ      10000
+#define MATH_FREQ_HZ         100
+
+#define I2C_MIN_PERIOD_US   1500
+#define I2C_PERIOD_US      10000
 
 #define KOEFF_END 1
 #define KOEFF_SLOW 2
@@ -44,16 +48,13 @@ typedef struct {
   unsigned int realzl;
 } Manipulator;
 
-typedef struct {
-  unsigned long tick;
-  unsigned long compare;
-  unsigned int mastertick;
-  unsigned int divide;
-} SoftwareTimer;
+extern volatile unsigned char motorsTickerEnabled;
 
-void manipulator_init(Manipulator *m, CommandVault *cv);
+extern volatile unsigned char mathTickerEnabled;
 
-void manipulator_configure(void);
+void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv);
+
+void manipulator_configure(CommanderTicker ct);
 
 void manipulator_unfreeze(void);
 
