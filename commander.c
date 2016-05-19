@@ -43,8 +43,13 @@ static void commander_ticker(void)
       if(commander->nods[commander->currentNodIdx].dir == TRANSFER_READ)
       {
         i2c_setAddress(commander->nods[commander->currentNodIdx].id);
+      #ifdef USE_NOW
         if(i2c_readNow(commander->nods[commander->currentNodIdx].readBuffer,
                        commander->nods[commander->currentNodIdx].readBufferSize))
+      #else
+        if(i2c_read(commander->nods[commander->currentNodIdx].readBuffer,
+                    commander->nods[commander->currentNodIdx].readBufferSize, NULL))
+      #endif
         {
           if(!commander->nods[commander->currentNodIdx].connected)
           {
@@ -112,8 +117,13 @@ static void commander_ticker(void)
             }        
             commandVault_unlock();
           }
+        #ifdef USE_NOW
           if(!i2c_writeNow(commander->nods[commander->currentNodIdx].writeBuffer,
-                           commander->nods[commander->currentNodIdx].writeBufferSize))
+                           commander->nods[commander->currentNodIdx].writeBufferSize))          
+        #else
+          if(!i2c_write(commander->nods[commander->currentNodIdx].writeBuffer,
+                           commander->nods[commander->currentNodIdx].writeBufferSize, NULL))            
+        #endif
           {
             commander->nods[commander->currentNodIdx].connected = FALSE;
             commander->nods[commander->currentNodIdx].disconnected = TRUE;

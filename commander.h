@@ -4,7 +4,7 @@
 #include "comvault.h"
 #include "usartd.h"
 
-//#define I2C_PERIOD_US 1500
+#define I2C_MIN_PERIOD_US 1500
 #define I2C_PERIOD_US 15000
 #define I2C_TRUST_EXCHANGE_PERIODS 10
 #define I2C_RETRY_TIMEOUT_PERIODS 10

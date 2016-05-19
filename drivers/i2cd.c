@@ -92,11 +92,12 @@ void i2c_setAddress(unsigned char addr)
   i2c->iaddresslen = iaddrlen;
 }
 
-void i2c_read(unsigned char *data,
-              unsigned int count,
-              Async *async)
+unsigned char i2c_read(unsigned char *data,
+                       unsigned int count,
+                       Async *async)
 {
   SANITY_CHECK(i2c);
+  unsigned char status = TRUE;
   //TRACE_DEBUG("I2C read transfer start\n\r");
   SANITY_CHECK((i2c->address & 0x80) == 0);
   SANITY_CHECK((i2c->iaddress & 0xFF000000) == 0);
@@ -112,6 +113,7 @@ void i2c_read(unsigned char *data,
   if(ASYNC_PENDIND(i2c->transfer.async->status))
   {
     TRACE_ERROR("I2C transfer is already pending on trying to read\n\r");
+    status = FALSE;
   }
   else
   {
@@ -130,14 +132,17 @@ void i2c_read(unsigned char *data,
     }
     TWI_StartRead(AT91C_BASE_TWI, i2c->address, i2c->iaddress, i2c->iaddresslen);
     i2c->transfer.countReal = 0;
+    status = TRUE;
   }
+  return status;
 }
 
-void i2c_write(unsigned char *data,
-               unsigned int count,
-               Async *async)
+unsigned char i2c_write(unsigned char *data,
+                        unsigned int count,
+                        Async *async)
 {
   SANITY_CHECK(i2c);
+  unsigned char status = TRUE;
   //TRACE_DEBUG("I2C write transfer start\n\r");
   SANITY_CHECK((i2c->address & 0x80) == 0);
   SANITY_CHECK((i2c->iaddress & 0xFF000000) == 0);
@@ -153,6 +158,7 @@ void i2c_write(unsigned char *data,
   if(ASYNC_PENDIND(i2c->transfer.async->status))
   {
     TRACE_ERROR("I2C transfer is already pending on trying to write\n\r");
+    status = FALSE;
   }
   else
   {
@@ -163,7 +169,9 @@ void i2c_write(unsigned char *data,
     TWI_EnableIt(AT91C_BASE_TWI, AT91C_TWI_TXRDY);
     TWI_StartWrite(AT91C_BASE_TWI, i2c->address, i2c->iaddress, i2c->iaddresslen, *data);
     i2c->transfer.countReal = 1;
+    status = TRUE;
   }
+  return status;
 }
 
 unsigned char i2c_readNow(unsigned char *data,

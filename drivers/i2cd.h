@@ -14,12 +14,14 @@
 #define DEFAULT_MASTER_ADDRESS 0x0F
 #define DEFAULT_MASTER_ADDRESS_LEN 1
 
-//#define I2C_FREQ_HZ 50000
+#define I2C_MAX_FREQ_HZ 50000
 #define I2C_FREQ_HZ 10000
 #define I2C_MAX_ATTEMPT 50000
 
 #define TRANSFER_WRITE 0
 #define TRANSFER_READ 1
+
+#define USE_NOW
 
 static const Pin TWI_pins[] = { PINS_TWI };
 
@@ -50,13 +52,13 @@ void i2c_setAddress(unsigned char addr);
 void i2c_setInternalAddress(unsigned int iaddr,
                             unsigned char iaddrlen);
 
-void i2c_read(unsigned char *data,
-              unsigned int count,
-              Async *async);
+unsigned char i2c_read(unsigned char *data,
+                       unsigned int count,
+                       Async *async);
 
-void i2c_write(unsigned char *data,
-               unsigned int count,
-               Async *async);
+unsigned char i2c_write(unsigned char *data,
+                        unsigned int count,
+                        Async *async);
 
 unsigned char i2c_readNow(unsigned char *data,
                           unsigned int count);
