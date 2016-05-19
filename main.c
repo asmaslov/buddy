@@ -14,6 +14,7 @@
 
 #include <stdio.h>
 
+#define PIT_PERIOD_US 1000 
 #define DEBOUNCE_TIME 20 // Times of I2C_PERIOD_US
 
 #define MAIN_LOOP_SLOW_DELAY 100000
@@ -73,7 +74,7 @@ static void systemTicker(void)
 
 void configurePit(void)
 {
-  PIT_Init(I2C_PERIOD_US, BOARD_MCK / 1000000);
+  PIT_Init(PIT_PERIOD_US, BOARD_MCK / 1000000);
   AIC_DisableIT(AT91C_ID_SYS);
   AIC_ConfigureIT(AT91C_ID_SYS, AT91C_AIC_PRIOR_LOWEST, systemTicker);
   AIC_EnableIT(AT91C_ID_SYS);
@@ -146,7 +147,6 @@ int main(void)
   
   while(TRUE)
   {
-    // Fast and furious
     fastTick++;
     if(fastTick > MAIN_LOOP_FAST_DELAY)
     {
@@ -183,23 +183,21 @@ int main(void)
       
       manipulator.globalSpeedPercentage = trimmer;
 
-      if(commandVault.needFeedback)
+      if(commandVault.leftFeedbacks-- > 0)
       {
         commander_reply();
       }
       
-      if(commandVault.requests.buttonA)
+      if(commandVault.holdkeys.buttonA)
       {
         TRACE_DEBUG("Button A\n\r");
       }
-      if(commandVault.requests.buttonB)
+      if(commandVault.holdkeys.buttonB)
       {
         TRACE_DEBUG("Button B\n\r");
       }
       // --
     }
-
-    // Slow and happy
     slowTick++;
     if((slowTick > MAIN_LOOP_SLOW_DELAY) && looptrace)
     {

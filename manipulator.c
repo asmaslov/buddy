@@ -13,9 +13,6 @@ static Commander *commander;
 static SoftwareTimer jointsTimers[TOTAL_JOINTS];
 static SoftwareTimer mathTimer;
 
-volatile unsigned char motorsTickerEnabled = FALSE;
-volatile unsigned char mathTickerEnabled = FALSE;
-
 static CommanderTicker commanderTicker;
 
 static const Pin Clocks_pins[] = { PINS_CLOCKS };
@@ -44,7 +41,7 @@ static void mainTimerHandler(void)
     {
       allJointsConnected &= commander->nods[i].connected;
     }
-    if(motorsTickerEnabled && allJointsConnected)
+    if(manipulator->motorsTickerEnabled && allJointsConnected)
     {
       for(int i = 0; i < TOTAL_JOINTS; i++)
       {
@@ -68,7 +65,7 @@ static void mainTimerHandler(void)
       }  
     }    
   }
-  if(mathTickerEnabled)
+  if(manipulator->mathTickerEnabled)
   {
     if(++mathTimer.tick >= mathTimer.compare)
     {
@@ -98,10 +95,10 @@ static void mainTimerHandler(void)
             {
               manipulator->joints[i].direction = LEFT;
               commandVault_lock();
-              commandVault->requests.endir12 &= ~(1 << 1);
-              commandVault->requests.endir12 &= ~(1 << 3);
-              commandVault->requests.endir34 &= ~(1 << 1);
-              commandVault->requests.endir34 |= (1 << 3);
+              commandVault->outputs.endir12 &= ~(1 << 1);
+              commandVault->outputs.endir12 &= ~(1 << 3);
+              commandVault->outputs.endir34 &= ~(1 << 1);
+              commandVault->outputs.endir34 |= (1 << 3);
               commandVault_unlock();
             }
           }
@@ -123,10 +120,10 @@ static void mainTimerHandler(void)
             {
               manipulator->joints[i].direction = RIGHT;
               commandVault_lock();
-              commandVault->requests.endir12 |= (1 << 1);
-              commandVault->requests.endir12 |= (1 << 3);
-              commandVault->requests.endir34 |= (1 << 1);
-              commandVault->requests.endir34 &= ~(1 << 3);
+              commandVault->outputs.endir12 |= (1 << 1);
+              commandVault->outputs.endir12 |= (1 << 3);
+              commandVault->outputs.endir34 |= (1 << 1);
+              commandVault->outputs.endir34 &= ~(1 << 3);
               commandVault_unlock();
             }
           }        
@@ -168,6 +165,14 @@ void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv)
   commander = c;
   SANITY_CHECK(cv);
   commandVault = cv;
+  manipulator->globalSpeedPercentage = 0;
+  manipulator->realx = 0;
+  manipulator->realy = 0;
+  manipulator->realzr = 0;
+  manipulator->realzl = 0;
+  manipulator->busy = FALSE;
+  manipulator->motorsTickerEnabled = FALSE;
+  manipulator->mathTickerEnabled = FALSE;
   for(int i = 0; i < TOTAL_JOINTS; i++)
   {
     manipulator->joints[i].moving = FALSE;
@@ -208,7 +213,6 @@ void manipulator_configure(CommanderTicker ct)
     mathTimer.divide++;    
   }
   TRACE_DEBUG("Math timer frequency = %d Hz\n\r", MATH_FREQ_HZ);
-  //TRACE_DEBUG("Timer Multiplicator = %d\n\r", multiplicator);
   // TODO:
   // 
   // Calculate compare values for each joint 
@@ -221,27 +225,27 @@ void manipulator_configure(CommanderTicker ct)
 void manipulator_unfreeze(void)
 {
   commandVault_lock();
-  commandVault->requests.endir12 |= (1 << 0);
-  commandVault->requests.endir12 |= (1 << 2);
-  commandVault->requests.endir34 |= (1 << 0);
-  commandVault->requests.endir34 |= (1 << 2);
-  commandVault->requests.endir12 |= (1 << 1);
-  commandVault->requests.endir12 |= (1 << 3);
-  commandVault->requests.endir34 |= (1 << 1);
-  commandVault->requests.endir34 &= ~(1 << 3);
+  commandVault->outputs.endir12 |= (1 << 0);
+  commandVault->outputs.endir12 |= (1 << 2);
+  commandVault->outputs.endir34 |= (1 << 0);
+  commandVault->outputs.endir34 |= (1 << 2);
+  commandVault->outputs.endir12 |= (1 << 1);
+  commandVault->outputs.endir12 |= (1 << 3);
+  commandVault->outputs.endir34 |= (1 << 1);
+  commandVault->outputs.endir34 &= ~(1 << 3);
   commandVault_unlock();
-  motorsTickerEnabled = TRUE;
-  mathTickerEnabled = TRUE;
+  manipulator->motorsTickerEnabled = TRUE;
+  manipulator->mathTickerEnabled = TRUE;
 }
 
 void manipulator_freeze(void)
 {
   commandVault_lock();
-  commandVault->requests.endir12 &=~(1 << 0);
-  commandVault->requests.endir12 &=~(1 << 2);
-  commandVault->requests.endir34 &=~(1 << 0);
-  commandVault->requests.endir34 &=~(1 << 2);
+  commandVault->outputs.endir12 &=~(1 << 0);
+  commandVault->outputs.endir12 &=~(1 << 2);
+  commandVault->outputs.endir34 &=~(1 << 0);
+  commandVault->outputs.endir34 &=~(1 << 2);
   commandVault_unlock();  
-  motorsTickerEnabled = FALSE;
-  mathTickerEnabled = FALSE;
+  manipulator->motorsTickerEnabled = FALSE;
+  manipulator->mathTickerEnabled = FALSE;
 }

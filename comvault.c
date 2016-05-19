@@ -10,22 +10,27 @@ void commandVault_init(CommandVault *cv)
   SANITY_CHECK(cv);
   commandVault = cv;
   commandVault->key = 0;
-  commandVault->needFeedback = FALSE;
-  commandVault->values.leftJoyX = 0;
-  commandVault->values.leftJoyY = 0;
-  commandVault->values.rightJoyX = 0;
-  commandVault->values.rightJoyY = 0;
+  
+  commandVault->requests.new = FALSE;
+  commandVault->requests.stop = FALSE;
+  commandVault->requests.calibrate = FALSE;
+  
+  commandVault->values.speedX = 0;
+  commandVault->values.speedY = 0;
+  commandVault->values.speedZR = 0;
+  commandVault->values.speedZL = 0;
+  
   commandVault->holdkeys.crossUp = 0;
   commandVault->holdkeys.crossDown = 0;
   commandVault->holdkeys.crossLeft = 0;
   commandVault->holdkeys.crossRight = 0;
-  commandVault->requests.buttonA = 0;
-  commandVault->requests.buttonB = 0;
-  commandVault->requests.buttonX = 0;
-  commandVault->requests.buttonY = 0;
+  commandVault->holdkeys.buttonA = 0;
+  commandVault->holdkeys.buttonB = 0;
+  commandVault->holdkeys.buttonX = 0;
+  commandVault->holdkeys.buttonY = 0;
 
-  commandVault->requests.endir12 = 0;
-  commandVault->requests.endir34 = 0;
+  commandVault->outputs.endir12 = 0;
+  commandVault->outputs.endir34 = 0;
 }
 
 void commandVault_lock(void)

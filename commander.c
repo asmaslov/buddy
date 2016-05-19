@@ -78,10 +78,10 @@ static void commander_ticker(void)
               commandVault->status.stat34 = commander->nods[commander->currentNodIdx].readBuffer[0];
             break;
           }  
-          commandVault->requests.endir12 |= (commandVault->status.stat12 & 0xC0);
-          commandVault->requests.endir12 &= (commandVault->status.stat12 | 0x3F);
-          commandVault->requests.endir34 |= (commandVault->status.stat34 & 0xC0);
-          commandVault->requests.endir34 &= (commandVault->status.stat34 | 0x3F);
+          commandVault->outputs.endir12 |= (commandVault->status.stat12 & 0xC0);
+          commandVault->outputs.endir12 &= (commandVault->status.stat12 | 0x3F);
+          commandVault->outputs.endir34 |= (commandVault->status.stat34 & 0xC0);
+          commandVault->outputs.endir34 &= (commandVault->status.stat34 | 0x3F);
           comport_uputchar(commandVault->status.stat12);
           comport_uputchar(commandVault->status.stat34);
           commandVault_unlock();
@@ -102,10 +102,10 @@ static void commander_ticker(void)
           switch(commander->nods[commander->currentNodIdx].id)
           {
             case ENDIR12_ADDRESS:
-              commander->nods[commander->currentNodIdx].writeBuffer[0] = commandVault->requests.endir12;
+              commander->nods[commander->currentNodIdx].writeBuffer[0] = commandVault->outputs.endir12;
             break;
             case ENDIR34_ADDRESS:
-              commander->nods[commander->currentNodIdx].writeBuffer[0] = commandVault->requests.endir34;
+              commander->nods[commander->currentNodIdx].writeBuffer[0] = commandVault->outputs.endir34;
             break;
           }        
           commandVault_unlock();

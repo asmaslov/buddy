@@ -4,11 +4,7 @@
 #include "comvault.h"
 #include "commander.h"
 
-#define TOTAL_JOINTS 4
-#define JOINT_X  0
-#define JOINT_Y  1
-#define JOINT_ZR 2
-#define JOINT_ZL 3
+#include "protocol.h"
 
 #define RIGHT 0
 #define LEFT  1
@@ -50,11 +46,10 @@ typedef struct {
   unsigned int realy;
   unsigned int realzr;
   unsigned int realzl;
+  unsigned char busy;
+  unsigned char motorsTickerEnabled;
+  unsigned char mathTickerEnabled;
 } Manipulator;
-
-extern volatile unsigned char motorsTickerEnabled;
-
-extern volatile unsigned char mathTickerEnabled;
 
 void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv);
 

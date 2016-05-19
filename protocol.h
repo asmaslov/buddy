@@ -19,9 +19,15 @@
 #define REPLY_PACKET_2 0xED
 #define REPLY_PACKET_3 0xEC
 
-#define INSTRUCTION_GOTO_XY  0
-#define INSTRUCTION_R_GOTO_Z 1
-#define INSTRUCTION_L_GOTO_Z 2
+#define INSTRUCTION_STOP      0
+#define INSTRUCTION_CALIBRATE 1
+#define INSTRUCTION_GOTO      2
+
+#define TOTAL_JOINTS 4
+#define JOINT_X  0
+#define JOINT_Y  1
+#define JOINT_ZR 2
+#define JOINT_ZL 3
 
 typedef union {
   unsigned char bytes[PACKET_LEN];
@@ -34,28 +40,28 @@ typedef union {
         unsigned char val  : 7;
         unsigned char sign : 1;
       };
-    } leftJoyXs;
+    } leftJoyX;
     union {
       unsigned char byte;
       struct {
         unsigned char val  : 7;
         unsigned char sign : 1;
       };
-    } leftJoyYs;
+    } leftJoyY;
     union {
       unsigned char byte;
       struct {
         unsigned char val  : 7;
         unsigned char sign : 1;
       };
-    } rightJoyXs;
+    } rightJoyX;
     union {
       unsigned char byte;
       struct {
         unsigned char val  : 7;
         unsigned char sign : 1;
       };
-    } rightJoyYs;
+    } rightJoyY;
     union {
       unsigned char byte;
       struct {

@@ -19,7 +19,7 @@ void parser_enable(Parser *p, CommandVault *cv)
   parser->nextPartIdx = 0;
   parser->packetRcvd = FALSE;
   parser->packetGood = FALSE;
-  commandVault->needFeedback = FALSE;
+  commandVault->leftFeedbacks = 0;
 }
 
 void parser_work(unsigned char *buf, int size)
@@ -112,46 +112,63 @@ void parser_work(unsigned char *buf, int size)
   {
     parser->packetGood = FALSE; 
     commandVault_lock();
+    switch (parser->packet.codes.segment)
+    {
+      default:
+        commandVault->values.speedX = parser->packet.leftJoyX.val * (parser->packet.leftJoyX.sign == 0 ? 1 : -1);
+        commandVault->values.speedY = parser->packet.leftJoyY.val * (parser->packet.leftJoyY.sign == 0 ? 1 : -1);
+        commandVault->values.speedZR = parser->packet.rightJoyX.val * (parser->packet.rightJoyX.sign == 0 ? 1 : -1);
+        commandVault->values.speedZL = parser->packet.rightJoyY.val * (parser->packet.rightJoyY.sign == 0 ? 1 : -1);
+        commandVault->holdkeys.crossUp = parser->packet.codes.crossUp;
+        commandVault->holdkeys.crossDown = parser->packet.codes.crossDown;
+        commandVault->holdkeys.crossLeft = parser->packet.codes.crossLeft;
+        commandVault->holdkeys.crossRight = parser->packet.codes.crossRight;
+    }    
     switch (parser->packet.type)
     {
       case CONTROL_PACKET_MANUAL:
-        switch (parser->packet.codes.segment)
-        {
-          default:
-            commandVault->values.leftJoyX = parser->packet.leftJoyXs.val * (parser->packet.leftJoyXs.sign == 0 ? 1 : -1);
-            commandVault->values.leftJoyY = parser->packet.leftJoyYs.val * (parser->packet.leftJoyYs.sign == 0 ? 1 : -1);
-            commandVault->values.rightJoyX = parser->packet.rightJoyXs.val * (parser->packet.rightJoyXs.sign == 0 ? 1 : -1);
-            commandVault->values.rightJoyY = parser->packet.rightJoyYs.val * (parser->packet.rightJoyYs.sign == 0 ? 1 : -1);
-            commandVault->holdkeys.crossUp = parser->packet.codes.crossUp;
-            commandVault->holdkeys.crossDown = parser->packet.codes.crossDown;
-            commandVault->holdkeys.crossLeft = parser->packet.codes.crossLeft;
-            commandVault->holdkeys.crossRight = parser->packet.codes.crossRight;
-            commandVault->requests.buttonA = parser->packet.special.buttonA;
-            commandVault->requests.buttonB = parser->packet.special.buttonB;
-            commandVault->requests.buttonX = parser->packet.special.buttonX;
-            commandVault->requests.buttonY = parser->packet.special.buttonY;        
-        }
+        commandVault->holdkeys.buttonA = parser->packet.special.buttonA;
+        commandVault->holdkeys.buttonB = parser->packet.special.buttonB;
+        commandVault->holdkeys.buttonX = parser->packet.special.buttonX;
+        commandVault->holdkeys.buttonY = parser->packet.special.buttonY;
       break;      
       case CONTROL_PACKET_INSTRUCTION:
         if(instructionLen != 0)
         {
-          switch (instruction[0])
+          if(instruction[0] == INSTRUCTION_STOP)
           {
-            case INSTRUCTION_GOTO_XY:
-            
-            break;
-            case INSTRUCTION_R_GOTO_Z:
-            
-            break;
-            case INSTRUCTION_L_GOTO_Z:
-            
-            break;
+            commandVault->requests.stop = TRUE;
           }
-          // TODO:
-          // Execute command interpreter
-          instructionLen = 0;
-          
-          commandVault->needFeedback = TRUE;
+          if(!commandVault->requests.new)
+          {
+            commandVault->requests.new = TRUE;
+            switch (instruction[0])
+            {
+              case INSTRUCTION_CALIBRATE:
+                // TODO:
+                // Figure this up
+              break;
+              case INSTRUCTION_GOTO:
+                switch (instruction[1])
+                {
+                  case JOINT_X:
+                  
+                  break;
+                  case JOINT_Y:
+                  
+                  break;
+                  case JOINT_ZR:
+                  
+                  break;
+                  case JOINT_ZL:
+                  
+                  break;
+                }
+              break;
+            }
+          }
+          instructionLen = 0;          
+          commandVault->leftFeedbacks++;
         }
       break;            
     }

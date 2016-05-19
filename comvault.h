@@ -5,10 +5,10 @@
 // Rename further 3 structure contents according to real functionality
 
 typedef struct _Values {
-  int leftJoyX;
-  int leftJoyY;
-  int rightJoyX;
-  int rightJoyY;
+  int speedX;
+  int speedY;
+  int speedZR;
+  int speedZL;
 } Values;
 
 typedef struct _Holdkeys {
@@ -16,17 +16,22 @@ typedef struct _Holdkeys {
   unsigned char crossDown;
   unsigned char crossLeft;
   unsigned char crossRight;
-} Holdkeys;
-
-typedef struct _Requests {
   unsigned char buttonA;
   unsigned char buttonB;
   unsigned char buttonX;
   unsigned char buttonY;
-  
+} Holdkeys;
+
+typedef struct _Requests {
+  unsigned char new;
+  unsigned char stop;
+  unsigned char calibrate;
+} Requests;
+
+typedef struct _Outputs {
   unsigned char endir12;
   unsigned char endir34;
-} Requests;
+} Outputs;
 
 typedef struct _Status {
   unsigned char stat12;
@@ -35,10 +40,11 @@ typedef struct _Status {
 
 typedef struct _CommandVault {
   int key;
-  unsigned char needFeedback;
+  unsigned int leftFeedbacks;
   Values values;
   Holdkeys holdkeys;
   Requests requests;
+  Outputs outputs;
   Status status;
 } CommandVault;
 
