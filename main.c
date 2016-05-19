@@ -127,9 +127,8 @@ int main(void)
   commanderTicker = commander_init(&commander, &commandVault, &comport);
   manipulator_init(&manipulator, &commander, &commandVault);
   manipulator_configure(commanderTicker);
-  
   commander_nodsPowerUp();
-  delayMs(100);
+  commander.tickerEnabled = TRUE;
   
   TRACE_DEBUG("Initialization complete\n\r");
   // --
@@ -145,7 +144,7 @@ int main(void)
   unsigned long slowTick = 0;
   unsigned char looptrace = FALSE; 
   
-  while(1)
+  while(TRUE)
   {
     // Fast and furious
     fastTick++;

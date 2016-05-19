@@ -39,21 +39,34 @@ static void mainTimerHandler(void)
         commanderTicker();
       }
     }
-  }
-  if(motorsTickerEnabled)
-  {
-    for(int i = 0; i < TOTAL_JOINTS; i++)
+    unsigned char allJointsConnected = TRUE;
+    for(int i = 0; i < commander->totalNods; i++)
     {
-      if(++jointsTimers[i].tick >= jointsTimers[i].compare)
+      allJointsConnected &= commander->nods[commander->currentNodIdx].connected;
+    }
+    if(motorsTickerEnabled && allJointsConnected)
+    {
+      for(int i = 0; i < TOTAL_JOINTS; i++)
       {
-        jointsTimers[i].tick = 0;
-        if(++jointsTimers[i].mastertick >= jointsTimers[i].divide)
+        if(++jointsTimers[i].tick >= jointsTimers[i].compare)
         {
-          jointsTimers[i].mastertick = 0;
-          PIO_Invert(&Clocks_pins[i]);
+          jointsTimers[i].tick = 0;
+          if(++jointsTimers[i].mastertick >= jointsTimers[i].divide)
+          {
+            jointsTimers[i].mastertick = 0;
+            PIO_Invert(&Clocks_pins[i]);
+            if(manipulator->joints[i].direction == RIGHT)
+            {
+              manipulator->joints[i].realPos++;
+            }
+            else
+            {
+              manipulator->joints[i].realPos--;
+            }
+          }
         }
-      }
-    }  
+      }  
+    }    
   }
   if(mathTickerEnabled)
   {
@@ -65,63 +78,64 @@ static void mainTimerHandler(void)
         mathTimer.mastertick = 0;
         // TODO:
         // All mighty calculations will be here
+        for(int i = 0; i < TOTAL_JOINTS; i++)
+        { 
+          if(manipulator->joints[i].direction == RIGHT)
+          {
+            if(manipulator->joints[i].realPos > STEP_MAX - STEP_MIN)
+            {
+              // increase jointsTimers[i].compare ++
+            }
+            else if(manipulator->joints[i].realPos > STEP_MAX - (2 * STEP_MIN))
+            {
+              // increase jointsTimers[i].compare +
+            }
+            else      
+            {
+              // increase jointsTimers[i].compare
+            }
+            if(manipulator->joints[i].realPos > STEP_MAX)
+            {
+              manipulator->joints[i].direction = LEFT;
+              commandVault_lock();
+              commandVault->requests.endir12 &= ~(1 << 1);
+              commandVault->requests.endir12 &= ~(1 << 3);
+              commandVault->requests.endir34 &= ~(1 << 1);
+              commandVault->requests.endir34 |= (1 << 3);
+              commandVault_unlock();
+            }
+          }
+          if(manipulator->joints[i].direction == LEFT)
+          {
+            if(manipulator->joints[i].realPos < STEP_MIN + STEP_MIN)
+            {
+              // increase jointsTimers[i].compare ++
+            }
+            else if(manipulator->joints[i].realPos < STEP_MIN + (2 * STEP_MIN))
+            {
+              // increase jointsTimers[i].compare +
+            }      
+            else      
+            {
+              // increase jointsTimers[i].compare
+            }
+            if(manipulator->joints[i].realPos < STEP_MIN)
+            {
+              manipulator->joints[i].direction = RIGHT;
+              commandVault_lock();
+              commandVault->requests.endir12 |= (1 << 1);
+              commandVault->requests.endir12 |= (1 << 3);
+              commandVault->requests.endir34 |= (1 << 1);
+              commandVault->requests.endir34 &= ~(1 << 3);
+              commandVault_unlock();
+            }
+          }        
+          // TODO:
+          // Calculate speed
+        }
       }
     }
   }
-  /*if(go_right)
-  {
-    step++;
-    if(step > STEP_MAX - STEP_MIN)
-    {
-      koeff = KOEFF_END;
-    }
-    else if(step > STEP_MAX - (2 * STEP_MIN))
-    {
-      koeff = KOEFF_SLOW;
-    }
-    else      
-    {
-      koeff = KOEFF_FAST;
-    }
-    if(step > STEP_MAX)
-    {
-      go_right = FALSE;
-      go_left = TRUE;
-      commandVault_lock();
-      commandVault->requests.endir12 &= ~(1 << 1);
-      commandVault->requests.endir12 &= ~(1 << 3);
-      commandVault->requests.endir34 &= ~(1 << 1);
-      commandVault->requests.endir34 |= (1 << 3);
-      commandVault_unlock();
-    }
-  }
-  if(go_left)
-  {
-    step--;
-    if(step < STEP_MIN + STEP_MIN)
-    {
-      koeff = KOEFF_END;
-    }
-    else if(step < STEP_MIN + (2 * STEP_MIN))
-    {
-      koeff = KOEFF_SLOW;
-    }      
-    else      
-    {
-      koeff = KOEFF_FAST;
-    }
-    if(step < STEP_MIN)
-    {
-      go_right = TRUE;
-      go_left = FALSE;
-      commandVault_lock();
-      commandVault->requests.endir12 |= (1 << 1);
-      commandVault->requests.endir12 |= (1 << 3);
-      commandVault->requests.endir34 |= (1 << 1);
-      commandVault->requests.endir34 &= ~(1 << 3);
-      commandVault_unlock();
-    }
-  }*/
 }
 
 static void manipulator_enableTimer(void)
@@ -163,6 +177,7 @@ void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv)
     manipulator->joints[i].realSpeed = 0;
     manipulator->joints[i].maxSpeed = 0;
     manipulator->joints[i].clockFreq = 0;
+    manipulator->joints[i].direction = RIGHT;
     jointsTimers[i].tick = 0;
     jointsTimers[i].compare = 0;
     jointsTimers[i].mastertick = 0;
@@ -197,10 +212,10 @@ void manipulator_configure(CommanderTicker ct)
   // TODO:
   // 
   // Calculate compare values for each joint 
-  /*for(int i = 0; i < TOTAL_JOINTS; i++)
+  for(int i = 0; i < TOTAL_JOINTS; i++)
   {
-    jointsTimers[i].compare = CLOCK_MAX_FREQ / manipulator->joints[i].clockFreq;
-  }*/
+    jointsTimers[i].compare = 4;
+  }
 }
 
 void manipulator_unfreeze(void)
@@ -216,7 +231,6 @@ void manipulator_unfreeze(void)
   commandVault->requests.endir34 &= ~(1 << 3);
   commandVault_unlock();
   motorsTickerEnabled = TRUE;
-  commander->tickerEnabled = TRUE;
   mathTickerEnabled = TRUE;
 }
 
@@ -229,6 +243,5 @@ void manipulator_freeze(void)
   commandVault->requests.endir34 &=~(1 << 2);
   commandVault_unlock();  
   motorsTickerEnabled = FALSE;
-  commander->tickerEnabled = FALSE;
   mathTickerEnabled = FALSE;
 }

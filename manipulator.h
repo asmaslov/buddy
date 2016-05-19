@@ -10,6 +10,9 @@
 #define JOINT_ZR 2
 #define JOINT_ZL 3
 
+#define RIGHT 0
+#define LEFT  1
+
 #define PIN_CLOCK_X {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
 #define PIN_CLOCK_Y {BIT27, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
 #define PIN_CLOCK_ZR {BIT3, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
@@ -37,6 +40,7 @@ typedef struct {
   unsigned long realSpeed;
   unsigned long maxSpeed;
   unsigned int clockFreq;
+  unsigned char direction;
 } Joint;
 
 typedef struct {
