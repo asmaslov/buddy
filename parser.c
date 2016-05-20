@@ -102,11 +102,36 @@ void parser_work(unsigned char *buf, int size)
   if(parser->packetRcvd)
   {
     parser->packetRcvd = FALSE;
-    // TODO:
-    // Check CRC
-    // unsigned char checkCRC = 0;
-    // and do not forget about instruction[]
-    parser->packetGood = TRUE;
+    unsigned int checkCRC = 0;
+    switch (parser->packet.type)
+    {
+      case CONTROL_PACKET_MANUAL:
+        for(int i = 0; i < PACKET_LEN - 2; i++)
+        {
+          checkCRC += parser->packet.bytes[i];
+        }
+
+        if(checkCRC == parser->packet.crc)
+        {
+          parser->packetGood = TRUE;
+        }
+      break;
+      case CONTROL_PACKET_INSTRUCTION:
+        for(int i = 0; i < PACKET_LEN - 3; i++)
+        {
+          checkCRC += parser->packet.bytes[i];
+        }
+        checkCRC += instructionLen;
+        for(int i = 0; i < instructionLen; i++)
+        {
+          checkCRC += instruction[i];
+        }
+        if(checkCRC == parser->packet.crc)
+        {
+          parser->packetGood = TRUE;
+        }
+      break;
+    }
   }
   if(parser->packetGood)
   {

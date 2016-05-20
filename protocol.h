@@ -88,8 +88,13 @@ typedef union {
         unsigned char buttonR2 : 1;
       };
     } special;
-    unsigned char crcH;
-    unsigned char crcL;
+    union {
+      unsigned int crc;
+      struct {
+        unsigned char crcL;
+        unsigned char crcH;
+      };
+    };
   };  
 } ControlPacket;
 
