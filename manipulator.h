@@ -6,8 +6,8 @@
 
 #include "protocol.h"
 
-#define RIGHT 0
-#define LEFT  1
+#define FORWARD 0
+#define BACK    1
 
 #define PIN_CLOCK_X {BIT22, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
 #define PIN_CLOCK_Y {BIT27, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_0, PIO_DEFAULT}
@@ -22,33 +22,47 @@
 #define I2C_MIN_PERIOD_US   1500
 #define I2C_PERIOD_US      10000
 
-#define KOEFF_END 1
-#define KOEFF_SLOW 2
-#define KOEFF_FAST 5
-#define STEP_MAX 2000
-#define STEP_MIN 100
+#define MIN_SPEED 1
+#define CALIBRATE_SPEED 3
+#define ZERO_GAP 100
+#define DEAD_ZONE 10
+#define STEP_DIVIDER 16
+
+#define CONTROL_SPEED 0
+#define CONTROL_POS   1
 
 typedef struct {
-  unsigned char moving; // bool
-  unsigned char sensZeroPos; // bool
-  unsigned long realPos;
-  unsigned long maxPos;
-  unsigned long realSpeed;
-  unsigned long maxSpeed;
+  bit moving;
+  bit sensZeroPos;
+  long realPos;
+  union {
+    long reqPos;
+    struct {
+      unsigned char reqPosL;
+      unsigned char reqPosH;
+    };
+  };
+  long maxPos;
+  long realSpeed;
+  long reqSpeed;
+  long maxSpeed;
   unsigned int clockFreq;
   unsigned char direction;
+  bit inverted;
+  SoftwareTimer timer;
 } Joint;
 
 typedef struct {
   Joint joints[TOTAL_JOINTS];
+  bit globalMotorsTickersEnabled;
   unsigned int globalSpeedPercentage;
+  unsigned char control;
+  bit calibrated;
   unsigned int realx;
   unsigned int realy;
   unsigned int realzr;
   unsigned int realzl;
-  unsigned char busy;
-  unsigned char motorsTickerEnabled;
-  unsigned char mathTickerEnabled;
+  bit busy;
 } Manipulator;
 
 void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv);

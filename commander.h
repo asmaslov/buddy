@@ -8,14 +8,13 @@
 #define I2C_RETRY_TIMEOUT_PERIODS 10
 #define I2C_BUS_DEVICE_MAX_COUNT 3
 #define I2C_BUFFER_MAX_SIZE 3
-//#define USE_ASYNC_I2C_DRIVER
 
 #define ENDIR12_ADDRESS 0x39
 #define ENDIR34_ADDRESS 0x3A
 
 typedef struct {
-  unsigned char connected; // bool
-  unsigned char disconnected; // bool
+  bit connected;
+  bit disconnected; // bool
   unsigned int id;
   unsigned char dir;
   unsigned char writeBuffer[I2C_BUFFER_MAX_SIZE];
@@ -27,6 +26,7 @@ typedef struct {
 } I2CNod;
 
 typedef struct {
+  bit enabled;
   unsigned long tick;
   unsigned long compare;
   unsigned int mastertick;
@@ -35,7 +35,6 @@ typedef struct {
 
 typedef struct _Commander {
   CommandVault *commandVault;
-  volatile unsigned char tickerEnabled;
   SoftwareTimer timer;
   I2CNod nods[I2C_BUS_DEVICE_MAX_COUNT];
   unsigned int currentNodIdx;

@@ -12,22 +12,25 @@
 #define CONTROL_PACKET_MANUAL 0xFF
 #define CONTROL_PACKET_INSTRUCTION 0xFE
 
-#define INSTRUCTION_MAX_LEN 256
-
 #define REPLY_PACKET_0 0xEF
 #define REPLY_PACKET_1 0xEE
 #define REPLY_PACKET_2 0xED
 #define REPLY_PACKET_3 0xEC
 
-#define INSTRUCTION_STOP      0
-#define INSTRUCTION_CALIBRATE 1
-#define INSTRUCTION_GOTO      2
+#define INSTRUCTION_MAX_LEN 256
+#define INSTRUCTION_STOP       0
+#define INSTRUCTION_CALIBRATE  1 
+#define INSTRUCTION_GOTO       2
 
 #define TOTAL_JOINTS 4
-#define JOINT_X  0
-#define JOINT_Y  1
-#define JOINT_ZR 2
-#define JOINT_ZL 3
+#define JOINT_X      0
+#define JOINT_Y      1
+#define JOINT_ZL     2
+#define JOINT_ZR     3
+#define JOINT_XY     4
+#define JOINT_XYZL   5
+#define JOINT_XYZR   6
+#define JOINT_XYZLZR 7
 
 typedef union {
   unsigned char bytes[PACKET_LEN];

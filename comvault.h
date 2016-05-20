@@ -1,8 +1,11 @@
 #ifndef COMVAULT_H
 #define COMVAULT_H
 
+#include "protocol.h"
+#include "bits.h"
+
 // TODO:
-// Rename further 3 structure contents according to real functionality
+// Rename further structures contents according to real functionality
 
 typedef struct _Values {
   int speedX;
@@ -12,20 +15,21 @@ typedef struct _Values {
 } Values;
 
 typedef struct _Holdkeys {
-  unsigned char crossUp;
-  unsigned char crossDown;
-  unsigned char crossLeft;
-  unsigned char crossRight;
-  unsigned char buttonA;
-  unsigned char buttonB;
-  unsigned char buttonX;
-  unsigned char buttonY;
+  bit crossUp;
+  bit crossDown;
+  bit crossLeft;
+  bit crossRight;
+  bit buttonA;
+  bit buttonB;
+  bit buttonX;
+  bit buttonY;
 } Holdkeys;
 
 typedef struct _Requests {
-  unsigned char new;
-  unsigned char stop;
-  unsigned char calibrate;
+  bit newIns;
+  bit stopAll;
+  unsigned char instruction;
+  unsigned char parameters[INSTRUCTION_MAX_LEN - 1];
 } Requests;
 
 typedef struct _Outputs {
@@ -34,6 +38,7 @@ typedef struct _Outputs {
 } Outputs;
 
 typedef struct _Status {
+  bit instructionDone;
   unsigned char stat12;
   unsigned char stat34; 
 } Status;

@@ -15,7 +15,7 @@
 #include <stdio.h>
 
 #define PIT_PERIOD_US 1000 
-#define DEBOUNCE_TIME 20 // Times of I2C_PERIOD_US
+#define DEBOUNCE_TIME 200 // Times of PIT_PERIOD_US
 
 #define MAIN_LOOP_SLOW_DELAY 100000
 #define MAIN_LOOP_FAST_DELAY 100
@@ -43,7 +43,7 @@ static void sw1Handler(void)
     if((timestamp - sw1HandlerTimestamp) > DEBOUNCE_TIME)
     {
       sw1HandlerTimestamp = timestamp;
-      TRACE_DEBUG("Manipulator go\n\r");
+      TRACE_DEBUG("Manipulator motors enabled\n\r");
       manipulator_unfreeze();
     }    
   }
@@ -56,7 +56,7 @@ static void sw2Handler(void)
     if((timestamp - sw2HandlerTimestamp) > DEBOUNCE_TIME)
     {
       sw2HandlerTimestamp = timestamp;
-      TRACE_DEBUG("Manipulator stop\n\r");
+      TRACE_DEBUG("Manipulator motors disabled\n\r");
       manipulator_freeze();
     }    
   }
@@ -129,7 +129,7 @@ int main(void)
   manipulator_init(&manipulator, &commander, &commandVault);
   manipulator_configure(commanderTicker);
   commander_nodsPowerUp();
-  commander.tickerEnabled = TRUE;
+  commander.timer.enabled = TRUE;
   
   TRACE_DEBUG("Initialization complete\n\r");
   // --
@@ -183,8 +183,9 @@ int main(void)
       
       manipulator.globalSpeedPercentage = trimmer;
 
-      if(commandVault.leftFeedbacks-- > 0)
+      if(commandVault.leftFeedbacks > 0)
       {
+        commandVault.leftFeedbacks--;
         commander_reply();
       }
       

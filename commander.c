@@ -82,8 +82,6 @@ static void commander_ticker(void)
           commandVault->outputs.endir12 &= (commandVault->status.stat12 | 0x3F);
           commandVault->outputs.endir34 |= (commandVault->status.stat34 & 0xC0);
           commandVault->outputs.endir34 &= (commandVault->status.stat34 | 0x3F);
-          comport_uputchar(commandVault->status.stat12);
-          comport_uputchar(commandVault->status.stat34);
           commandVault_unlock();
         }
       }
@@ -133,7 +131,7 @@ static void commander_ticker(void)
     commander->nods[commander->currentNodIdx].attepmt++;
     if(commander->nods[commander->currentNodIdx].attepmt == I2C_RETRY_TIMEOUT_PERIODS)
     {
-      commander->tickerEnabled = FALSE;
+      commander->timer.enabled = FALSE;
       for(int i = 0; i < commander->totalNods; i++)
       {
         commander->nods[i].attepmt = 0;
@@ -147,7 +145,7 @@ static void commander_ticker(void)
       i2c_enable(&i2c);
       i2c_configureMaster(I2C_FREQ_HZ);
       commander_nodsPowerUp();
-      commander->tickerEnabled = TRUE;
+      commander->timer.enabled = TRUE;
     }
     commander_nextnod();
   }
@@ -164,7 +162,7 @@ CommanderTicker commander_init(Commander *c, CommandVault *cv, Comport *cp)
   comport = cp;
   CommanderTicker ct = commander_ticker;
   comport_setParserFunc(parser_work);  
-  commander->tickerEnabled = FALSE;
+  commander->timer.enabled = FALSE;
   commander->timer.tick = 0;
   commander->timer.compare = 0;
   commander->timer.mastertick = 0;

@@ -53,21 +53,21 @@ void parser_work(unsigned char *buf, int size)
         case CONTROL_PACKET_INSTRUCTION:
           if(instructionLen == 0)
           {
-            if(recByte == 0)
-            {
-              parser->packet.special.byte = 0;
-              parser->nextPartIdx = 8;    
-            }
-            else
+            if(recByte != 0)
             {
               instructionLen = recByte;
               instructionIdx = 0;
+            }
+            else
+            {
+              parser->packet.special.byte = 0;
+              parser->nextPartIdx = 8;    
             }
           }
           else
           {
             instruction[instructionIdx++] = recByte;
-            if(instructionIdx == instructionLen - 1)
+            if(instructionIdx == instructionLen)
             {
               parser->nextPartIdx = 8;
             }
@@ -137,35 +137,21 @@ void parser_work(unsigned char *buf, int size)
         {
           if(instruction[0] == INSTRUCTION_STOP)
           {
-            commandVault->requests.stop = TRUE;
+            commandVault->requests.stopAll = TRUE;
           }
-          if(!commandVault->requests.new)
+          if(!commandVault->requests.newIns)
           {
-            commandVault->requests.new = TRUE;
-            switch (instruction[0])
+            commandVault->requests.newIns = TRUE;
+            commandVault->status.instructionDone = FALSE;
+            commandVault->requests.instruction = instruction[0];
+            for(int i = 0; i < instructionLen - 1; i++)
             {
-              case INSTRUCTION_CALIBRATE:
-                // TODO:
-                // Figure this up
-              break;
-              case INSTRUCTION_GOTO:
-                switch (instruction[1])
-                {
-                  case JOINT_X:
-                  
-                  break;
-                  case JOINT_Y:
-                  
-                  break;
-                  case JOINT_ZR:
-                  
-                  break;
-                  case JOINT_ZL:
-                  
-                  break;
-                }
-              break;
+              commandVault->requests.parameters[i - 1] = instruction[i + 1];
             }
+          }
+          else
+          {
+            TRACE_DEBUG("Manipulator busy\n\r");
           }
           instructionLen = 0;          
           commandVault->leftFeedbacks++;

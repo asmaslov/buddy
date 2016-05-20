@@ -11,14 +11,14 @@ void commandVault_init(CommandVault *cv)
   commandVault = cv;
   commandVault->key = 0;
   
-  commandVault->requests.new = FALSE;
-  commandVault->requests.stop = FALSE;
-  commandVault->requests.calibrate = FALSE;
+  commandVault->requests.newIns = FALSE;
+  commandVault->requests.stopAll = FALSE;
+  commandVault->requests.instruction = INSTRUCTION_STOP;
   
   commandVault->values.speedX = 0;
   commandVault->values.speedY = 0;
-  commandVault->values.speedZR = 0;
   commandVault->values.speedZL = 0;
+  commandVault->values.speedZR = 0;
   
   commandVault->holdkeys.crossUp = 0;
   commandVault->holdkeys.crossDown = 0;
@@ -31,6 +31,8 @@ void commandVault_init(CommandVault *cv)
 
   commandVault->outputs.endir12 = 0;
   commandVault->outputs.endir34 = 0;
+  
+  commandVault->status.instructionDone = FALSE;
 }
 
 void commandVault_lock(void)

@@ -7,8 +7,8 @@
 typedef struct _Parser {
   ControlPacket packet;
   unsigned char nextPartIdx;
-  unsigned char packetRcvd;
-  unsigned char packetGood;
+  bit packetRcvd;
+  bit packetGood;
 } Parser;
 
 void parser_enable(Parser *p, CommandVault *cv);
