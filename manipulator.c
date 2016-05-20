@@ -72,11 +72,24 @@ static void mainTimerHandler(void)
               PIO_Invert(&Clocks_pins[i]);
               if(manipulator->joints[i].direction == FORWARD)
               {
-                manipulator->joints[i].realPos++;
+                if(!manipulator->joints[i].inverted)
+                {
+                  manipulator->joints[i].realPos++;
+                }
+                else
+                {
+                  manipulator->joints[i].realPos--;
+                }                  
               }
               else
               {
-                manipulator->joints[i].realPos--;
+                if(!manipulator->joints[i].inverted)
+                {
+                  manipulator->joints[i].realPos--;
+                }
+                {
+                  manipulator->joints[i].realPos++;
+                }
               }
             }
           }
@@ -153,7 +166,7 @@ static void mainTimerHandler(void)
                   TRACE_DEBUG("Manipulator calibration complete\n\r");
                   // TODO:
                   // Emulate command to move to (ZERO_GAP, ZERO_GAP, [ZERO_GAP, ZERO_GAP])
-                  /*commandVault->requests.instruction = INSTRUCTION_GOTO;
+                  commandVault->requests.instruction = INSTRUCTION_GOTO;
                   commandVault->requests.parameters[0] = JOINT_XYZLZR;
                   commandVault->requests.parameters[1] = ZERO_GAP;
                   commandVault->requests.parameters[2] = 0;
@@ -163,15 +176,16 @@ static void mainTimerHandler(void)
                   commandVault->requests.parameters[6] = 0;
                   commandVault->requests.parameters[7] = ZERO_GAP;
                   commandVault->requests.parameters[8] = 0;
-                  commandVault->requests.newIns = TRUE;*/
+                  commandVault->requests.newIns = TRUE;
                 }
               break;
               case INSTRUCTION_GOTO:
-                if(!manipulator->calibrated)
+                /*if(!manipulator->calibrated)
                 {
                   TRACE_DEBUG("Manipulator not calibrated\n\r");
+                  manipulator->control = CONTROL_SPEED;
                 }
-                else
+                else*/
                 {
                   switch (commandVault->requests.parameters[0])
                   {
@@ -231,15 +245,22 @@ static void mainTimerHandler(void)
                 {
                   // TODO:
                   // Calculate reqSpeeds from reqPositions with regulators and stuff                 
-                  if(manipulator->joints[i].reqPos < manipulator->joints[i].realPos)
+                  if(manipulator->joints[i].reqPos < manipulator->joints[i].realPos - DEAD_ZONE / 2)
                   {
-                    manipulator->joints[i].reqSpeed = MIN_SPEED;
+                    manipulator->joints[i].reqSpeed = -TEST_SPEED;
+                  }
+                  else if(manipulator->joints[i].reqPos > manipulator->joints[i].realPos + DEAD_ZONE / 2)
+                  {
+                    manipulator->joints[i].reqSpeed = TEST_SPEED;
                   }
                   else
                   {
-                    manipulator->joints[i].reqSpeed = -MIN_SPEED;
+                    manipulator->joints[i].reqSpeed = 0;
                   }
                 }
+                //
+                // Breakpoint here
+                //
                 allInPlace = TRUE;
                 for(int i = 0; i < TOTAL_JOINTS; i++)
                 {
@@ -256,6 +277,7 @@ static void mainTimerHandler(void)
                 {
                   manipulator->control = CONTROL_SPEED;
                   commandVault->status.instructionDone = TRUE;
+                  TRACE_DEBUG("Manipulator command complete\n\r");
                 }                
               break;
               default:

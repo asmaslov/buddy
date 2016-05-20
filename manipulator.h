@@ -23,6 +23,7 @@
 #define I2C_PERIOD_US      10000
 
 #define MIN_SPEED 1
+#define TEST_SPEED 3
 #define CALIBRATE_SPEED 3
 #define ZERO_GAP 100
 #define DEAD_ZONE 10
@@ -34,18 +35,18 @@
 typedef struct {
   bit moving;
   bit sensZeroPos;
-  long realPos;
+  signed long long realPos;
   union {
-    long reqPos;
+    unsigned long reqPos;
     struct {
       unsigned char reqPosL;
       unsigned char reqPosH;
     };
   };
-  long maxPos;
-  long realSpeed;
-  long reqSpeed;
-  long maxSpeed;
+  unsigned long maxPos;
+  signed long realSpeed;
+  signed long reqSpeed;
+  signed long maxSpeed;
   unsigned int clockFreq;
   unsigned char direction;
   bit inverted;

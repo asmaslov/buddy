@@ -171,7 +171,7 @@ void parser_work(unsigned char *buf, int size)
             commandVault->requests.instruction = instruction[0];
             for(int i = 0; i < instructionLen - 1; i++)
             {
-              commandVault->requests.parameters[i - 1] = instruction[i + 1];
+              commandVault->requests.parameters[i] = instruction[i + 1];
             }
           }
           else
