@@ -192,7 +192,7 @@ unsigned char PIO_GetOutputDataStatus(const Pin *pin)
   }
   else
   {
-    return 1;
+    return 1; 
   }
 }
 

@@ -122,7 +122,6 @@ static void mainTimerHandler(void)
           // Calculate real speeds
           // and set 'moving' bits
         }
-        // Change control type for all joints in case
         if(commandVault->requests.newIns)
         {  
           manipulator->control = CONTROL_POS;

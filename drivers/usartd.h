@@ -24,7 +24,7 @@
 
 //#define MAX_BPS 500
 #define USART_BUFFER_SIZE 10
-#define TIMEOUT 0
+#define USART_TIMEOUT 0
 
 static const Pin USART0_pins[] = {
   PINS_USART0_RXTX,

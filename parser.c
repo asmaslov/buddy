@@ -139,6 +139,19 @@ void parser_work(unsigned char *buf, int size)
     commandVault_lock();
     switch (parser->packet.codes.segment)
     {
+      case SEGMENT_MAIN:
+        commandVault->values.speedX = parser->packet.leftJoyX.val * (parser->packet.leftJoyX.sign == 0 ? 1 : -1);
+        commandVault->values.speedY = parser->packet.leftJoyY.val * (parser->packet.leftJoyY.sign == 0 ? 1 : -1);
+        commandVault->values.speedZR = parser->packet.rightJoyX.val * (parser->packet.rightJoyX.sign == 0 ? 1 : -1);
+        commandVault->values.speedZL = parser->packet.rightJoyY.val * (parser->packet.rightJoyY.sign == 0 ? 1 : -1);
+        commandVault->holdkeys.crossUp = parser->packet.codes.crossUp;
+        commandVault->holdkeys.crossDown = parser->packet.codes.crossDown;
+        commandVault->holdkeys.crossLeft = parser->packet.codes.crossLeft;
+        commandVault->holdkeys.crossRight = parser->packet.codes.crossRight;
+      break;
+      case SEGMENT_AUTO:
+      
+      break;
       default:
         commandVault->values.speedX = parser->packet.leftJoyX.val * (parser->packet.leftJoyX.sign == 0 ? 1 : -1);
         commandVault->values.speedY = parser->packet.leftJoyY.val * (parser->packet.leftJoyY.sign == 0 ? 1 : -1);

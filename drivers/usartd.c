@@ -16,7 +16,7 @@ static void comport_handler0(void)
   AIC_ClearIT(AT91C_ID_US0);
   unsigned int status;
   status = AT91C_BASE_US0->US_CSR;
-  if ((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
+  if((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
   {
     if(comport->parser)
     {
@@ -95,10 +95,10 @@ void comport_uputchar(char c)
   switch(comport->port)
   {
     case USART0:
-      USART_Write(AT91C_BASE_US0, c, TIMEOUT);
+      USART_Write(AT91C_BASE_US0, c, USART_TIMEOUT);
     break;
     case USART1:
-      USART_Write(AT91C_BASE_US1, c, TIMEOUT);
+      USART_Write(AT91C_BASE_US1, c, USART_TIMEOUT);
     break;
   }
 }
@@ -146,10 +146,10 @@ unsigned char comport_ugetchar(void)
   switch(comport->port)
   {
     case USART0:
-      return USART_Read(AT91C_BASE_US0, TIMEOUT);
+      return USART_Read(AT91C_BASE_US0, USART_TIMEOUT);
     break;
     case USART1:
-      return USART_Read(AT91C_BASE_US1, TIMEOUT);
+      return USART_Read(AT91C_BASE_US1, USART_TIMEOUT);
     break;
   }
   return 0;
