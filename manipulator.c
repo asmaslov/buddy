@@ -116,6 +116,20 @@ static void mainTimerHandler(void)
         {
           comport->parser(comport->readBuffer, USART_BUFFER_SIZE);
         }
+        if(commandVault->requests.stopAll)
+        {
+          for(int i = 0; i < TOTAL_JOINTS; i++)
+          {
+             manipulator->joints[i].reqSpeed = 0;
+          }
+          manipulator->control = CONTROL_SPEED;
+          commandVault->requests.stopAll = FALSE;
+        }
+        else if(commandVault->requests.newIns)
+        {  
+          manipulator->control = CONTROL_POS;
+          commandVault->requests.newIns = FALSE;
+        }
       }
     }
   }
@@ -128,25 +142,11 @@ static void mainTimerHandler(void)
       if(++mathTimer.mastertick >= mathTimer.divide)
       {
         mathTimer.mastertick = 0;
-        if(commandVault->requests.stopAll)
-        {
-          for(int i = 0; i < TOTAL_JOINTS; i++)
-          {
-             manipulator->joints[i].reqSpeed = 0;
-          }
-          manipulator->control = CONTROL_SPEED;
-          commandVault->requests.stopAll = FALSE;
-        }  
         for(int i = 0; i < TOTAL_JOINTS; i++)
         {
           // TODO:
           // Calculate real speeds
           // and set 'moving' bits
-        }
-        if(commandVault->requests.newIns)
-        {  
-          manipulator->control = CONTROL_POS;
-          commandVault->requests.newIns = FALSE;
         }
         switch (manipulator->control)
         {
@@ -166,7 +166,7 @@ static void mainTimerHandler(void)
                 {
                   if(!manipulator->joints[i].sensZeroPos)
                   {
-                    manipulator->joints[i].reqSpeed = -CALIBRATE_SPEED;
+                    manipulator->joints[i].reqSpeed = -SPEED_CALIBRATE;
                   }
                   else
                   {
@@ -183,7 +183,7 @@ static void mainTimerHandler(void)
                 {
                   manipulator->control = CONTROL_SPEED;
                   manipulator->calibrated = TRUE;
-                  TRACE_DEBUG("Manipulator calibration complete\n\r");
+                  TRACE_DEBUG("Manipulator calibrated\n\r");
                   // TODO:
                   // Emulate command to move to (ZERO_GAP, ZERO_GAP, [ZERO_GAP, ZERO_GAP])
                   commandVault->requests.instruction = INSTRUCTION_GOTO;
@@ -264,14 +264,14 @@ static void mainTimerHandler(void)
                 for(int i = 0; i < TOTAL_JOINTS; i++)
                 {
                   // TODO:
-                  // Calculate reqSpeeds from reqPositions with regulators and stuff                 
+                  // Calculate reqSpeeds from reqPositions with regulators and stuff                                  
                   if(manipulator->joints[i].reqPos < manipulator->joints[i].realPos - DEAD_ZONE / 2)
                   {
-                    manipulator->joints[i].reqSpeed = -TEST_SPEED;
+                    manipulator->joints[i].reqSpeed = -SPEED_TEST;
                   }
                   else if(manipulator->joints[i].reqPos > manipulator->joints[i].realPos + DEAD_ZONE / 2)
                   {
-                    manipulator->joints[i].reqSpeed = TEST_SPEED;
+                    manipulator->joints[i].reqSpeed = SPEED_TEST;
                   }
                   else
                   {
@@ -304,7 +304,7 @@ static void mainTimerHandler(void)
                 }
             }
           break;
-        }          
+        }
         for(int i = 0; i < TOTAL_JOINTS; i++)
         {
           if(!manipulator->joints[i].inverted)
@@ -334,7 +334,7 @@ static void mainTimerHandler(void)
         if(manipulator->joints[JOINT_X].direction == FORWARD)
         {
           // TODO:
-          // outputs.endirXX must be calculated
+          // outputs.endirXX must be calculated (XX) according to joint number
           commandVault->outputs.endir12 &=~(1 << 1);
         }
         else
