@@ -7,6 +7,14 @@
 // TODO:
 // Rename further structures contents according to real functionality
 
+typedef struct {
+  bit enabled;
+  unsigned long tick;
+  unsigned long compare;
+  unsigned int mastertick;
+  unsigned int divide;
+} SoftwareTimer;
+
 typedef struct _Values {
   int speedX;
   int speedY;

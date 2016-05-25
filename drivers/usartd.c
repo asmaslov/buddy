@@ -16,15 +16,17 @@ static void comport_handler0(void)
   AIC_ClearIT(AT91C_ID_US0);
   unsigned int status;
   status = AT91C_BASE_US0->US_CSR;
-  if((status & AT91C_US_RXBUFF) == AT91C_US_RXBUFF)
+  if((status & AT91C_US_ENDRX) == AT91C_US_ENDRX)
   {
     if(comport->parser)
     {
       comport->parser(comport->readBuffer, USART_BUFFER_SIZE);
     }
-    USART_ReadBuffer(AT91C_BASE_US0, comport->readBuffer, USART_BUFFER_SIZE);
+    if(!USART_ReadBuffer(AT91C_BASE_US0, comport->readBuffer, USART_BUFFER_SIZE))
+    {
+      TRACE_ERROR("USART0 buffers busy\n\r");
+    }
   }
-  AIC_FinishIT();
 }
 
 static void comport_handler1(void)

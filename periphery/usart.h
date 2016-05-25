@@ -8,7 +8,7 @@
 // IRDA mode
 #define USART_MODE_IRDA (AT91C_US_USMODE_IRDA | AT91C_US_CHRL_8_BITS | AT91C_US_PAR_NONE | AT91C_US_FILTER)
 // All interrupts
-#define AT91C_US_AIR 0xF3FFF
+#define AT91C_US_ALLIR 0xF3FFF
 
 extern void USART_Configure(AT91S_USART *usart,
                             unsigned int mode,

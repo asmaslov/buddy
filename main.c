@@ -126,10 +126,11 @@ int main(void)
   // Launch main logic modules, order is important
   commandVault_init(&commandVault);
   commanderTicker = commander_init(&commander, &commandVault, &comport);
-  manipulator_init(&manipulator, &commander, &commandVault);
+  manipulator_init(&manipulator, &commander, &commandVault, &comport);
   manipulator_configure(commanderTicker);
   commander_nodsPowerUp();
-  commander.timer.enabled = TRUE;
+  commander_start();
+  manipulator_startParser();
   
   TRACE_DEBUG("Initialization complete\n\r");
   // --

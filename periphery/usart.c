@@ -6,10 +6,11 @@ void USART_Configure(AT91S_USART *usart,
                      unsigned int baudrate,
                      unsigned int masterClock)
 {
+  SANITY_CHECK(usart);
   // Reset and disable receiver & transmitter
   usart->US_CR = AT91C_US_RSTRX | AT91C_US_RSTTX | AT91C_US_RXDIS | AT91C_US_TXDIS;
   // Disable all interrupts
-  usart->US_IDR = AT91C_US_AIR;
+  usart->US_IDR = AT91C_US_ALLIR;
   // Configure mode
   usart->US_MR = mode;
   // Configure baudrate
@@ -18,6 +19,8 @@ void USART_Configure(AT91S_USART *usart,
   {
     usart->US_BRGR = (masterClock / baudrate) / 16;
   }
+  // Disable DMA channel
+  usart->US_PTCR = AT91C_PDC_RXTDIS | AT91C_PDC_TXTDIS;
   // TODO: other modes
 }
 
@@ -38,6 +41,7 @@ void USART_DisableIt(AT91S_USART *usart,
 void USART_SetTransmitterEnabled(AT91S_USART *usart,
                                  unsigned char enabled)
 {
+  SANITY_CHECK(usart);
   if (enabled)
   {
     usart->US_CR = AT91C_US_TXEN;
@@ -51,6 +55,7 @@ void USART_SetTransmitterEnabled(AT91S_USART *usart,
 void USART_SetReceiverEnabled(AT91S_USART *usart,
                               unsigned char enabled)
 {
+  SANITY_CHECK(usart);
   if (enabled)
   {
     usart->US_CR = AT91C_US_RXEN;
@@ -65,6 +70,7 @@ void USART_Write(AT91S_USART *usart,
                  unsigned short data,
                  volatile unsigned int timeout)
 {
+  SANITY_CHECK(usart);
   if (timeout == 0)
   {
     while ((usart->US_CSR & AT91C_US_TXEMPTY) == 0);
@@ -88,6 +94,7 @@ unsigned char USART_WriteBuffer(AT91S_USART *usart,
                                 void *buffer,
                                 unsigned int size)
 {
+  SANITY_CHECK(usart);
   // Check if the first PDC bank is free
   if ((usart->US_TCR == 0) && (usart->US_TNCR == 0))
   {
@@ -112,6 +119,7 @@ unsigned char USART_WriteBuffer(AT91S_USART *usart,
 unsigned short USART_Read(AT91S_USART *usart,
                           volatile unsigned int timeout)
 {
+  SANITY_CHECK(usart);
   if (timeout == 0)
   {
     while ((usart->US_CSR & AT91C_US_RXRDY) == 0);
@@ -135,6 +143,7 @@ unsigned char USART_ReadBuffer(AT91S_USART *usart,
                                       void *buffer,
                                       unsigned int size)
 {
+  SANITY_CHECK(usart);
   // Check if the first PDC bank is free
   if ((usart->US_RCR == 0) && (usart->US_RNCR == 0))
   {
@@ -158,6 +167,7 @@ unsigned char USART_ReadBuffer(AT91S_USART *usart,
 
 unsigned char USART_IsDataAvailable(AT91S_USART *usart)
 {
+  SANITY_CHECK(usart);
   if ((usart->US_CSR & AT91C_US_RXRDY) != 0)
   {
     return 1;

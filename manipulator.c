@@ -2,6 +2,8 @@
 #include "pio.h"
 #include "tc.h"
 #include "aic.h"
+#include "usartd.h"
+#include "parser.h"
 
 #include "smplmath.h"
 #include "assert.h"
@@ -11,6 +13,9 @@
 static Manipulator *manipulator;
 static CommandVault *commandVault;
 static Commander *commander;
+static Comport *comport;
+
+Parser parser;
 
 static SoftwareTimer mathTimer;
 
@@ -26,6 +31,7 @@ static void mainTimerHandler(void)
   SANITY_CHECK(manipulator);
   SANITY_CHECK(commander);
   SANITY_CHECK(commandVault);
+  SANITY_CHECK(comport);
   // Clear status bit to acknowledge interrupt
   unsigned int dummy;
   dummy = AT91C_BASE_TC0->TC_SR;
@@ -97,16 +103,31 @@ static void mainTimerHandler(void)
       }  
     }    
   }
+  if(parser.timer.enabled)
+  {
+    if(++parser.timer.tick >= parser.timer.compare)
+    {
+      parser.timer.tick = 0;
+      if(++parser.timer.mastertick >= parser.timer.divide)
+      {
+        parser.timer.mastertick = 0;
+        // Parser timer interrupt
+        if(comport->parser)
+        {
+          comport->parser(comport->readBuffer, USART_BUFFER_SIZE);
+        }
+      }
+    }
+  }
   if(mathTimer.enabled)
   {
     if(++mathTimer.tick >= mathTimer.compare)
     {
       mathTimer.tick = 0;
+      // Math timer interrupt
       if(++mathTimer.mastertick >= mathTimer.divide)
       {
         mathTimer.mastertick = 0;
-        // Math timer interrupt
-        // Top priority command
         if(commandVault->requests.stopAll)
         {
           for(int i = 0; i < TOTAL_JOINTS; i++)
@@ -179,12 +200,12 @@ static void mainTimerHandler(void)
                 }
               break;
               case INSTRUCTION_GOTO:
-                /*if(!manipulator->calibrated)
+                if(!manipulator->calibrated)
                 {
                   TRACE_DEBUG("Manipulator not calibrated\n\r");
                   manipulator->control = CONTROL_SPEED;
                 }
-                else*/
+                else
                 {
                   switch (commandVault->requests.parameters[0])
                   {
@@ -257,9 +278,6 @@ static void mainTimerHandler(void)
                     manipulator->joints[i].reqSpeed = 0;
                   }
                 }
-                //
-                // Breakpoint here
-                //
                 allInPlace = TRUE;
                 for(int i = 0; i < TOTAL_JOINTS; i++)
                 {
@@ -276,7 +294,7 @@ static void mainTimerHandler(void)
                 {
                   manipulator->control = CONTROL_SPEED;
                   commandVault->status.instructionDone = TRUE;
-                  TRACE_DEBUG("Manipulator command complete\n\r");
+                  TRACE_DEBUG("Manipulator instruction complete\n\r");
                 }                
               break;
               default:
@@ -287,7 +305,6 @@ static void mainTimerHandler(void)
             }
           break;
         }          
-        // Sets step and directions
         for(int i = 0; i < TOTAL_JOINTS; i++)
         {
           if(!manipulator->joints[i].inverted)
@@ -376,7 +393,7 @@ static void manipulator_enableTimer(void)
   TC_Start(AT91C_BASE_TC0);
 }
 
-void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv)
+void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv, Comport *cp)
 {
   SANITY_CHECK(m);
   manipulator = m;
@@ -384,6 +401,10 @@ void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv)
   commander = c;
   SANITY_CHECK(cv);
   commandVault = cv;
+  SANITY_CHECK(cp);
+  comport = cp;
+  parser_enable(&parser, commandVault);
+  comport_setParserFunc(parser_work);  
   manipulator->globalSpeedPercentage = 0;
   manipulator->control = CONTROL_SPEED;
   manipulator->calibrated = FALSE;
@@ -394,6 +415,10 @@ void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv)
   manipulator->busy = FALSE;
   manipulator->globalMotorsTickersEnabled = FALSE;
   mathTimer.enabled = FALSE;
+  mathTimer.tick = 0;
+  mathTimer.compare = 0;
+  mathTimer.mastertick = 0;
+  mathTimer.divide = 1;
   for(int i = 0; i < TOTAL_JOINTS; i++)
   {
     manipulator->joints[i].moving = FALSE;
@@ -412,10 +437,6 @@ void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv)
     manipulator->joints[i].timer.compare = 0;
     manipulator->joints[i].timer.mastertick = 0;
     manipulator->joints[i].timer.divide = 1;
-    mathTimer.tick = 0;
-    mathTimer.compare = 0;
-    mathTimer.mastertick = 0;
-    mathTimer.divide = 1;
   } 
   PIO_Configure(Clocks_pins,  PIO_LISTSIZE(Clocks_pins));
   manipulator_enableTimer();
@@ -437,12 +458,29 @@ void manipulator_configure(CommanderTicker ct)
   {
     mathTimer.divide++;    
   }
+  mathTimer.compare = (unsigned int)(CLOCK_FREQ_HZ / (MATH_FREQ_HZ * mathTimer.divide));  
   TRACE_DEBUG("Math timer frequency = %d Hz\n\r", MATH_FREQ_HZ);
+  while((0xFFFFFFFE / (MATH_FREQ_HZ * parser.timer.divide)) < CLOCK_FREQ_HZ)
+  {
+    parser.timer.divide++;    
+  }
+  parser.timer.compare = (unsigned int)(CLOCK_FREQ_HZ / (PARSER_FREQ_HZ * parser.timer.divide));  
+  TRACE_DEBUG("Parser timer frequency = %d Hz\n\r", PARSER_FREQ_HZ);
   // TODO:
   // Define this somewhere else
   manipulator->joints[JOINT_X].inverted = TRUE;
   manipulator->joints[JOINT_Y].inverted = TRUE;
   manipulator->joints[JOINT_ZR].inverted = TRUE;
+}
+
+void manipulator_startParser(void)
+{
+  parser.timer.enabled = TRUE;
+}
+
+void manipulator_stopParser(void)
+{
+  parser.timer.enabled = FALSE;
 }
 
 void manipulator_unfreeze(void)

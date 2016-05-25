@@ -25,14 +25,6 @@ typedef struct {
   unsigned int attepmt;
 } I2CNod;
 
-typedef struct {
-  bit enabled;
-  unsigned long tick;
-  unsigned long compare;
-  unsigned int mastertick;
-  unsigned int divide;
-} SoftwareTimer;
-
 typedef struct _Commander {
   CommandVault *commandVault;
   SoftwareTimer timer;
@@ -54,5 +46,11 @@ void commander_createNod(unsigned int nodId,
 void commander_nodsPowerUp(void);
 
 void commander_nodsPowerDown(void);
+
+void commander_start(void);
+
+void commander_stop(void);
+
+void commander_reply(void);
 
 #endif //#ifndef COMMANDER_H

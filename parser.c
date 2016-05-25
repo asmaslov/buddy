@@ -17,8 +17,14 @@ void parser_enable(Parser *p, CommandVault *cv)
   SANITY_CHECK(cv);
   commandVault = cv;
   parser->nextPartIdx = 0;
+  parser->lastPacketIdx = 0;
   parser->packetRcvd = FALSE;
   parser->packetGood = FALSE;
+  parser->timer.enabled = FALSE;
+  parser->timer.tick = 0;
+  parser->timer.compare = 0;
+  parser->timer.mastertick = 0;
+  parser->timer.divide = 1; 
   commandVault->leftFeedbacks = 0;
 }
 
@@ -27,28 +33,27 @@ void parser_work(unsigned char *buf, int size)
   SANITY_CHECK(parser);
   SANITY_CHECK(commandVault);  
   unsigned char recByte;
-  int i;
-  for(i = 0; i < size; i++)
+  for(int i = 0; i < size; i++)
   {
     recByte = *(buf + i);
-    if(parser->nextPartIdx == 9)
+    if(parser->nextPartIdx == PACKET_PART_CRC_L)
     {
       parser->packet.crcL = recByte;
-      parser->nextPartIdx = 0;
+      parser->nextPartIdx = PACKET_PART_START;
       parser->packetRcvd = TRUE;
     }
-    if(parser->nextPartIdx == 8)
+    if(parser->nextPartIdx == PACKET_PART_CRC_H)
     {
       parser->packet.crcH = recByte;
-      parser->nextPartIdx = 9;
+      parser->nextPartIdx++;
     }
-    if(parser->nextPartIdx == 7)
+    if(parser->nextPartIdx == PACKET_PART_SPECIAL)
     {
       switch (parser->packet.type)
       {
         case CONTROL_PACKET_MANUAL:
           parser->packet.special.byte = recByte;
-          parser->nextPartIdx = 8;    
+          parser->nextPartIdx++;
         break;
         case CONTROL_PACKET_INSTRUCTION:
           if(instructionLen == 0)
@@ -61,48 +66,59 @@ void parser_work(unsigned char *buf, int size)
             else
             {
               parser->packet.special.byte = 0;
-              parser->nextPartIdx = 8;    
+              parser->nextPartIdx++;
             }
           }
           else
           {
-            instruction[instructionIdx++] = recByte;
-            if(instructionIdx == instructionLen)
+            instruction[instructionIdx] = recByte;
+            if(++instructionIdx == instructionLen)
             {
-              parser->nextPartIdx = 8;
+              parser->nextPartIdx++;
             }
           }
         break;
       }
     }
-    if((parser->nextPartIdx < 7) && (parser->nextPartIdx > 1))
+    if((parser->nextPartIdx < PACKET_PART_SPECIAL) && (parser->nextPartIdx >= PACKET_PART_CONTROLS))
     {
       parser->packet.bytes[parser->nextPartIdx] = recByte;
-      parser->nextPartIdx += 1;
+      parser->nextPartIdx++;
     } 
-    if(parser->nextPartIdx == 1)
+    if(parser->nextPartIdx == PACKET_PART_IDX_L)
+    {
+      parser->packet.idxL = recByte;
+      parser->nextPartIdx++;
+    }
+    if(parser->nextPartIdx == PACKET_PART_IDX_H)
+    {
+      parser->packet.idxH = recByte;
+      parser->nextPartIdx++;
+    }
+    if(parser->nextPartIdx == PACKET_PART_TYPE)
     {
       if ((CONTROL_PACKET_MANUAL == recByte)
        || (CONTROL_PACKET_INSTRUCTION == recByte))
       {
         parser->packet.type = recByte;
-        parser->nextPartIdx = 2;
+        parser->nextPartIdx++;
+        instructionLen = 0;
       }
       else
       {
-        parser->nextPartIdx = 0;
+        parser->nextPartIdx = PACKET_PART_START;
       }
     }
-    if((parser->nextPartIdx == 0) && (DEFAULT_UNIT_ADDR == recByte) && (!parser->packetRcvd))
+    if((parser->nextPartIdx == PACKET_PART_START) && (DEFAULT_UNIT_ADDR == recByte) && (!parser->packetRcvd))
     {
       parser->packet.unit = recByte;
-      parser->nextPartIdx = 1;
+      parser->nextPartIdx++;
     }
   }
   if(parser->packetRcvd)
   {
     parser->packetRcvd = FALSE;
-    unsigned int checkCRC = 0;
+    unsigned short checkCRC = 0;
     switch (parser->packet.type)
     {
       case CONTROL_PACKET_MANUAL:
@@ -110,10 +126,14 @@ void parser_work(unsigned char *buf, int size)
         {
           checkCRC += parser->packet.bytes[i];
         }
-
         if(checkCRC == parser->packet.crc)
         {
-          parser->packetGood = TRUE;
+          if((parser->packet.idx > parser->lastPacketIdx) ||
+             ((parser->packet.idx == 0) && (parser->lastPacketIdx == MAX_PACKET_INDEX)))
+          {    
+            parser->lastPacketIdx = parser->packet.idx;
+            parser->packetGood = TRUE;
+          }
         }
       break;
       case CONTROL_PACKET_INSTRUCTION:
@@ -128,7 +148,12 @@ void parser_work(unsigned char *buf, int size)
         }
         if(checkCRC == parser->packet.crc)
         {
-          parser->packetGood = TRUE;
+          if((parser->packet.idx > parser->lastPacketIdx) ||
+             ((parser->packet.idx == 0) && (parser->lastPacketIdx == MAX_PACKET_INDEX)))
+          {    
+            parser->lastPacketIdx = parser->packet.idx;
+            parser->packetGood = TRUE;
+          }
         }
       break;
     }
@@ -180,6 +205,7 @@ void parser_work(unsigned char *buf, int size)
           if(!commandVault->requests.newIns)
           {
             commandVault->requests.newIns = TRUE;
+            TRACE_DEBUG("New instruction\n\r");
             commandVault->status.instructionDone = FALSE;
             commandVault->requests.instruction = instruction[0];
             for(int i = 0; i < instructionLen - 1; i++)

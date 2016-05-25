@@ -24,7 +24,7 @@ static void adc_handler(void)
   {
     ADC_DisableIt(AT91C_BASE_ADC, ADC_MIC_IN);
     adc->micIn = ADC_GetConvertedData(AT91C_BASE_ADC, ADC_MIC_IN);
-  }    
+  }
 }
 
 void adc_enable(ADC *a)

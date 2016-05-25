@@ -2,7 +2,6 @@
 
 #include "i2cd.h"
 #include "usartd.h"
-#include "parser.h"
 
 #include "delay.h"
 #include "assert.h"
@@ -14,7 +13,6 @@ static ReplyPacket reply;
 
 static const Pin NodPower_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 
-Parser parser;
 I2c i2c;
 
 static void commander_nextnod(void)
@@ -161,7 +159,6 @@ CommanderTicker commander_init(Commander *c, CommandVault *cv, Comport *cp)
   SANITY_CHECK(cp);
   comport = cp;
   CommanderTicker ct = commander_ticker;
-  comport_setParserFunc(parser_work);  
   commander->timer.enabled = FALSE;
   commander->timer.tick = 0;
   commander->timer.compare = 0;
@@ -176,7 +173,6 @@ CommanderTicker commander_init(Commander *c, CommandVault *cv, Comport *cp)
   // Create real nods
   commander_createNod(ENDIR12_ADDRESS, 1, 1);
   commander_createNod(ENDIR34_ADDRESS, 1, 1);
-  parser_enable(&parser, commandVault);
   for(int i = 0; i < PACKET_LEN; i++)
   {
     reply.bytes[i] = 0;
@@ -232,10 +228,23 @@ void commander_nodsPowerDown(void)
   commander->currentNodIdx = 0;
 }
 
+void commander_start(void)
+{
+  SANITY_CHECK(commander);
+  commander->timer.enabled = TRUE;
+}
+
+void commander_stop(void)
+{
+  SANITY_CHECK(commander);
+  commander->timer.enabled = FALSE;
+}
+
 void commander_reply(void)
 {
   for(int i = 0; i < PACKET_LEN; i++)
   {
     comport_uputchar(reply.bytes[i]);
-  }  
+  }
+  
 }

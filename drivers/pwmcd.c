@@ -34,7 +34,7 @@ static void pwm_handler(void)
       pwm->count = 0;
       PWMC_SetDutyCycle(PWM_SPEAKER, pwm->duty);
     }
-  }  
+  }
 }
 
 void pwm_enable(PWM *p)

@@ -231,7 +231,7 @@
         <option>
           <name>CCAllowList</name>
           <version>1</version>
-          <state>1111111</state>
+          <state>1001010</state>
         </option>
         <option>
           <name>CCDebugInfo</name>
@@ -322,7 +322,7 @@
         </option>
         <option>
           <name>CCOptLevel</name>
-          <state>3</state>
+          <state>2</state>
         </option>
         <option>
           <name>CCOptStrategy</name>
@@ -331,7 +331,7 @@
         </option>
         <option>
           <name>CCOptLevelSlave</name>
-          <state>3</state>
+          <state>2</state>
         </option>
         <option>
           <name>CompilerMisraRules98</name>
@@ -1092,6 +1092,7 @@
           <name>CCDefines</name>
           <state>flash</state>
           <state>TRACE_LEVEL=TRACE_LEVEL_NO_TRACE</state>
+          <state>NOASSERT</state>
           <state>NOFPUT</state>
         </option>
         <option>

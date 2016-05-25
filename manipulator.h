@@ -4,8 +4,6 @@
 #include "comvault.h"
 #include "commander.h"
 
-#include "protocol.h"
-
 #define FORWARD 0
 #define BACK    1
 
@@ -18,6 +16,7 @@
 #define CLOCK_MAX_FREQ_HZ 300000
 #define CLOCK_FREQ_HZ      10000
 #define MATH_FREQ_HZ         100
+#define PARSER_FREQ_HZ        10
 
 #define I2C_MIN_PERIOD_US   1500
 #define I2C_PERIOD_US      10000
@@ -66,9 +65,16 @@ typedef struct {
   bit busy;
 } Manipulator;
 
-void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv);
+void manipulator_init(Manipulator *m,
+                      Commander *c,
+                      CommandVault *cv,
+                      Comport *cp);
 
 void manipulator_configure(CommanderTicker ct);
+
+void manipulator_startParser(void);
+
+void manipulator_stopParser(void);
 
 void manipulator_unfreeze(void);
 

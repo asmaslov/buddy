@@ -1,16 +1,18 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-#define PACKET_LEN 10
+#define PACKET_LEN 12
 
 // Unit address range [0x00 .. 0x7F]
 //  Pad address range [0x80 .. 0xFF]
 
 #define DEFAULT_UNIT_ADDR 0x0F
-#define DEFAULT_PAD_ADDR 0x8F
+#define DEFAULT_PAD_ADDR  0x8F
 
-#define CONTROL_PACKET_MANUAL 0xFF
+#define CONTROL_PACKET_MANUAL      0xFF
 #define CONTROL_PACKET_INSTRUCTION 0xFE
+
+#define MAX_PACKET_INDEX 0xFFFF
 
 #define REPLY_PACKET_0 0xEF
 #define REPLY_PACKET_1 0xEE
@@ -20,26 +22,44 @@
 #define SEGMENT_MAIN 0x00
 #define SEGMENT_AUTO 0x0F
 
-#define INSTRUCTION_MAX_LEN 256
+#define INSTRUCTION_MAX_LEN   20
 #define INSTRUCTION_STOP       0
 #define INSTRUCTION_CALIBRATE  1 
 #define INSTRUCTION_GOTO       2
 
 #define TOTAL_JOINTS 4
+
 #define JOINT_X      0
 #define JOINT_Y      1
 #define JOINT_ZL     2
 #define JOINT_ZR     3
-#define JOINT_XY     4
-#define JOINT_XYZL   5
-#define JOINT_XYZR   6
-#define JOINT_XYZLZR 7
+
+#define JOINT_XY     0x80
+#define JOINT_XYZL   0x81
+#define JOINT_XYZR   0x82
+#define JOINT_XYZLZR 0x83
+
+#define PACKET_PART_START     0
+#define PACKET_PART_TYPE      1
+#define PACKET_PART_IDX_H     2
+#define PACKET_PART_IDX_L     3
+#define PACKET_PART_CONTROLS  4
+#define PACKET_PART_SPECIAL   9
+#define PACKET_PART_CRC_H    10
+#define PACKET_PART_CRC_L    11
 
 typedef union {
   unsigned char bytes[PACKET_LEN];
   struct {
     unsigned char unit;
     unsigned char type;
+    union {
+      unsigned short idx; 
+      struct {
+        unsigned char idxL;
+        unsigned char idxH;
+      };
+    };
     union {
       unsigned char byte;
       struct {
@@ -92,7 +112,7 @@ typedef union {
       };
     } special;
     union {
-      unsigned int crc;
+      unsigned short crc;
       struct {
         unsigned char crcL;
         unsigned char crcH;
@@ -106,9 +126,21 @@ typedef union {
   struct {
     unsigned char unit;
     unsigned char type;
+    union {
+      unsigned int word;
+      struct {
+        unsigned char l;
+        unsigned char h;
+      };
+    } idx;
     unsigned char data[6];
-    unsigned char crcH;
-    unsigned char crcL;
+    union {
+      unsigned int word;
+      struct {
+        unsigned char l;
+        unsigned char h;
+      };
+    } crc;
   };  
 } ReplyPacket;
 
