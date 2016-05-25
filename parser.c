@@ -16,6 +16,7 @@ void parser_enable(Parser *p, CommandVault *cv)
   parser = p;
   SANITY_CHECK(cv);
   commandVault = cv;
+  ASSERT((sizeof(ControlPacket) == PACKET_LEN), "Packet length not equal to real structure size\n\r");
   parser->nextPartIdx = 0;
   parser->lastPacketIdx = 0;
   parser->packetRcvd = FALSE;
