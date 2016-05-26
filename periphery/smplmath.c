@@ -25,6 +25,11 @@ unsigned int absv(signed int value)
   }
 }
 
+int sign(signed int value)
+{
+  return (value < 0) ? -1 : 1;
+}
+
 unsigned int power(unsigned int x,
                    unsigned int y)
 {

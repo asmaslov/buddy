@@ -19,14 +19,15 @@
 #define PARSER_FREQ_HZ        10
 
 #define I2C_MIN_PERIOD_US   1500
-#define I2C_PERIOD_US      10000
+#define I2C_PERIOD_US       5000
 
 #define SPEED_MIN 1
-#define SPEED_TEST 5
+#define SPEED_TEST 3
 #define SPEED_CALIBRATE 1
 #define SPEED_MAX 10
+#define ACCELERATION_MAX 1
 #define ZERO_GAP 100
-#define DEAD_ZONE 10
+#define DEAD_ZONE 100
 #define STEP_DIVIDER 16
 
 #define CONTROL_SPEED 0
@@ -36,6 +37,7 @@ typedef struct {
   bit moving;
   bit sensZeroPos;
   int realPos;
+  int oldPos;
   union {
     unsigned short reqPos;
     struct {
@@ -43,10 +45,13 @@ typedef struct {
       unsigned char reqPosH;
     };
   };
-  int maxPos;
-  long realSpeed;
-  long reqSpeed;
-  long maxSpeed;
+  unsigned short maxPos;
+  int realSpeed;
+  int reqSpeed;
+  bit limitTopSpeed;
+  unsigned char topSpeed;
+  unsigned int maxSpeed;
+  unsigned int maxAccel;
   unsigned int clockFreq;
   unsigned char direction;
   bit inverted;

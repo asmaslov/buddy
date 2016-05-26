@@ -39,6 +39,13 @@
 #define JOINT_XYZR   0x82
 #define JOINT_XYZLZR 0x83
 
+// TODO:
+// Measure it
+/*#define JOINT_X_MAX
+#define JOINT_Y_MAX
+#define JOINT_ZR_MAX
+#define JOINT_ZL_MAX*/
+
 #define PACKET_PART_START     0
 #define PACKET_PART_TYPE      1
 #define PACKET_PART_IDX_H     2

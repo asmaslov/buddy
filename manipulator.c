@@ -26,13 +26,31 @@ static const Pin Clocks_pins[] = { PINS_CLOCKS };
 static bit allJointsConnected = FALSE;
 static bit allInPlace = FALSE;
 
-static void mainTimerHandler(void)
+static void manipulator_configureJoints(void)
+{
+  manipulator->joints[JOINT_X].maxSpeed = SPEED_MAX;
+  manipulator->joints[JOINT_Y].maxSpeed = SPEED_MAX;
+  manipulator->joints[JOINT_ZL].maxSpeed = SPEED_MAX;
+  manipulator->joints[JOINT_ZR].maxSpeed = SPEED_MAX;
+  manipulator->joints[JOINT_X].maxAccel = ACCELERATION_MAX;
+  manipulator->joints[JOINT_Y].maxAccel = ACCELERATION_MAX;
+  manipulator->joints[JOINT_ZL].maxAccel = ACCELERATION_MAX;
+  manipulator->joints[JOINT_ZR].maxAccel = ACCELERATION_MAX;
+  /*manipulator->joints[JOINT_X].maxPos = JOINT_X_MAX;
+  manipulator->joints[JOINT_Y].maxPos = JOINT_Y_MAX;
+  manipulator->joints[JOINT_ZL].maxPos = JOINT_ZL_MAX;
+  manipulator->joints[JOINT_ZR].maxPos = JOINT_ZR_MAX;*/
+  manipulator->joints[JOINT_X].inverted = TRUE;
+  manipulator->joints[JOINT_Y].inverted = TRUE;
+  manipulator->joints[JOINT_ZR].inverted = TRUE;  
+}
+
+static void manipulator_handler(void)
 {
   SANITY_CHECK(manipulator);
   SANITY_CHECK(commander);
   SANITY_CHECK(commandVault);
   SANITY_CHECK(comport);
-  // Clear status bit to acknowledge interrupt
   unsigned int dummy;
   dummy = AT91C_BASE_TC0->TC_SR;
   dummy = dummy;
@@ -93,6 +111,7 @@ static void mainTimerHandler(void)
                 {
                   manipulator->joints[i].realPos--;
                 }
+                else
                 {
                   manipulator->joints[i].realPos++;
                 }
@@ -144,29 +163,42 @@ static void mainTimerHandler(void)
         mathTimer.mastertick = 0;
         for(int i = 0; i < TOTAL_JOINTS; i++)
         {
-          // TODO:
-          // Calculate real speeds
-          // and set 'moving' bits
+          manipulator->joints[i].realSpeed = (manipulator->joints[i].realPos - manipulator->joints[i].oldPos) * MATH_FREQ_HZ / STEP_DIVIDER;
+          manipulator->joints[i].oldPos = manipulator->joints[i].realPos;
+          if(manipulator->joints[i].realSpeed != 0)
+          {
+            manipulator->joints[i].moving = TRUE;
+          }
+          else
+          {
+            manipulator->joints[i].moving = FALSE;
+          }
         }
         switch (manipulator->control)
         {
           case CONTROL_SPEED:
             manipulator->joints[JOINT_X].reqSpeed = commandVault->values.speedX * manipulator->globalSpeedPercentage;
-            // TODO:
-            // if(manipulator->joints[JOINT_X].reqSpeed > manipulator->joints[JOINT_X].maxSpeed)
             manipulator->joints[JOINT_Y].reqSpeed = commandVault->values.speedY * manipulator->globalSpeedPercentage;
             manipulator->joints[JOINT_ZL].reqSpeed = commandVault->values.speedZL * manipulator->globalSpeedPercentage;          
             manipulator->joints[JOINT_ZR].reqSpeed = commandVault->values.speedZR * manipulator->globalSpeedPercentage;
+            for(int i = 0; i < TOTAL_JOINTS; i++)
+            {
+              if(abs(manipulator->joints[i].reqSpeed) > manipulator->joints[i].maxSpeed)
+              {
+                manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * manipulator->joints[i].maxSpeed;
+              }              
+            }
           break;
           case CONTROL_POS:
             switch (commandVault->requests.instruction)
             {
               case INSTRUCTION_CALIBRATE:
+                manipulator->calibrated = FALSE;
                 for(int i = 0; i < TOTAL_JOINTS; i++)
                 {
                   if(!manipulator->joints[i].sensZeroPos)
                   {
-                    manipulator->joints[i].reqSpeed = -SPEED_CALIBRATE;
+                    manipulator->joints[i].reqSpeed = -SPEED_CALIBRATE * manipulator->globalSpeedPercentage;
                   }
                   else
                   {
@@ -189,13 +221,21 @@ static void mainTimerHandler(void)
                   commandVault->requests.instruction = INSTRUCTION_GOTO;
                   commandVault->requests.parameters[0] = JOINT_XYZLZR;
                   commandVault->requests.parameters[1] = ZERO_GAP;
-                  commandVault->requests.parameters[2] = 0;
+                  //commandVault->requests.parameters[2] = 0;
+                  commandVault->requests.parameters[2] = 20;
                   commandVault->requests.parameters[3] = ZERO_GAP;
-                  commandVault->requests.parameters[4] = 0;
+                  //commandVault->requests.parameters[4] = 0;
+                  commandVault->requests.parameters[4] = 20;
                   commandVault->requests.parameters[5] = ZERO_GAP;
-                  commandVault->requests.parameters[6] = 0;
+                  //commandVault->requests.parameters[6] = 0;
+                  commandVault->requests.parameters[6] = 20;
                   commandVault->requests.parameters[7] = ZERO_GAP;
-                  commandVault->requests.parameters[8] = 0;
+                  //commandVault->requests.parameters[8] = 0;
+                  commandVault->requests.parameters[8] = 20;
+                  commandVault->requests.parameters[9] = 0;
+                  commandVault->requests.parameters[10] = 0;
+                  commandVault->requests.parameters[11] = 0;
+                  commandVault->requests.parameters[12] = 0;
                   commandVault->requests.newIns = TRUE;
                 }
               break;
@@ -210,28 +250,32 @@ static void mainTimerHandler(void)
                   switch (commandVault->requests.parameters[0])
                   {
                     case JOINT_X:
-                      // TODO:
-                      // if <= manipulator->joints[0].maxPos
                       manipulator->joints[JOINT_X].reqPosL = commandVault->requests.parameters[1];
                       manipulator->joints[JOINT_X].reqPosH = commandVault->requests.parameters[2];
+                      manipulator->joints[JOINT_X].topSpeed = commandVault->requests.parameters[3];
                     break;
                     case JOINT_Y:
                       manipulator->joints[JOINT_Y].reqPosL = commandVault->requests.parameters[1];
                       manipulator->joints[JOINT_Y].reqPosH = commandVault->requests.parameters[2];
+                      manipulator->joints[JOINT_Y].topSpeed = commandVault->requests.parameters[3];
                     break;
                     case JOINT_ZL:
                       manipulator->joints[JOINT_ZL].reqPosL = commandVault->requests.parameters[1];
                       manipulator->joints[JOINT_ZL].reqPosH = commandVault->requests.parameters[2];
+                      manipulator->joints[JOINT_ZL].topSpeed = commandVault->requests.parameters[3];
                     break;
                     case JOINT_ZR:
                       manipulator->joints[JOINT_ZR].reqPosL = commandVault->requests.parameters[1];
                       manipulator->joints[JOINT_ZR].reqPosH = commandVault->requests.parameters[2];
+                      manipulator->joints[JOINT_ZR].topSpeed = commandVault->requests.parameters[3];
                     break;
                     case JOINT_XY:
                       manipulator->joints[JOINT_X].reqPosL = commandVault->requests.parameters[1];
                       manipulator->joints[JOINT_X].reqPosH = commandVault->requests.parameters[2];
                       manipulator->joints[JOINT_Y].reqPosL = commandVault->requests.parameters[3];
                       manipulator->joints[JOINT_Y].reqPosH = commandVault->requests.parameters[4];
+                      manipulator->joints[JOINT_X].topSpeed = commandVault->requests.parameters[5];
+                      manipulator->joints[JOINT_Y].topSpeed = commandVault->requests.parameters[6];
                     break;
                     case JOINT_XYZL:
                       manipulator->joints[JOINT_X].reqPosL = commandVault->requests.parameters[1];
@@ -240,6 +284,9 @@ static void mainTimerHandler(void)
                       manipulator->joints[JOINT_Y].reqPosH = commandVault->requests.parameters[4];
                       manipulator->joints[JOINT_ZL].reqPosL = commandVault->requests.parameters[5];
                       manipulator->joints[JOINT_ZL].reqPosH = commandVault->requests.parameters[6];
+                      manipulator->joints[JOINT_X].topSpeed = commandVault->requests.parameters[7];
+                      manipulator->joints[JOINT_Y].topSpeed = commandVault->requests.parameters[8];
+                      manipulator->joints[JOINT_ZL].topSpeed = commandVault->requests.parameters[9];
                     break;
                     case JOINT_XYZR:
                       manipulator->joints[JOINT_X].reqPosL = commandVault->requests.parameters[1];
@@ -248,6 +295,9 @@ static void mainTimerHandler(void)
                       manipulator->joints[JOINT_Y].reqPosH = commandVault->requests.parameters[4];
                       manipulator->joints[JOINT_ZR].reqPosL = commandVault->requests.parameters[5];
                       manipulator->joints[JOINT_ZR].reqPosH = commandVault->requests.parameters[6];
+                      manipulator->joints[JOINT_X].topSpeed = commandVault->requests.parameters[7];
+                      manipulator->joints[JOINT_Y].topSpeed = commandVault->requests.parameters[8];
+                      manipulator->joints[JOINT_ZR].topSpeed = commandVault->requests.parameters[9];
                     break;
                     case JOINT_XYZLZR:
                       manipulator->joints[JOINT_X].reqPosL = commandVault->requests.parameters[1];
@@ -258,6 +308,10 @@ static void mainTimerHandler(void)
                       manipulator->joints[JOINT_ZL].reqPosH = commandVault->requests.parameters[6];
                       manipulator->joints[JOINT_ZR].reqPosL = commandVault->requests.parameters[7];
                       manipulator->joints[JOINT_ZR].reqPosH = commandVault->requests.parameters[8];
+                      manipulator->joints[JOINT_X].topSpeed = commandVault->requests.parameters[9];
+                      manipulator->joints[JOINT_Y].topSpeed = commandVault->requests.parameters[10];
+                      manipulator->joints[JOINT_ZL].topSpeed = commandVault->requests.parameters[11];
+                      manipulator->joints[JOINT_ZR].topSpeed = commandVault->requests.parameters[12];
                     break;
                   }
                 }
@@ -265,17 +319,50 @@ static void mainTimerHandler(void)
                 {
                   // TODO:
                   // Calculate reqSpeeds from reqPositions with regulators and stuff                                  
+                  if(manipulator->joints[i].topSpeed != 0)
+                  {
+                    manipulator->joints[i].limitTopSpeed = TRUE;
+                  }
+                  else
+                  {
+                    manipulator->joints[i].limitTopSpeed = FALSE;                      
+                  }
+                  // TODO:
+                  // Uncommend after #define JOINT_i_MAX
+                  /*if(manipulator->joints[i].reqPos > manipulator->joints[i].maxPos)
+                  {
+                    manipulator->joints[i].reqPos = manipulator->joints[i].maxPos;
+                  }*/
                   if(manipulator->joints[i].reqPos < manipulator->joints[i].realPos - DEAD_ZONE / 2)
                   {
-                    manipulator->joints[i].reqSpeed = -SPEED_TEST;
+                    if(manipulator->joints[i].limitTopSpeed)
+                    {
+                      manipulator->joints[i].reqSpeed = -manipulator->joints[i].topSpeed;
+                    }
+                    else
+                    {
+                      manipulator->joints[i].reqSpeed = -(SPEED_TEST * manipulator->globalSpeedPercentage);
+                    }
                   }
                   else if(manipulator->joints[i].reqPos > manipulator->joints[i].realPos + DEAD_ZONE / 2)
                   {
-                    manipulator->joints[i].reqSpeed = SPEED_TEST;
+                    if(manipulator->joints[i].limitTopSpeed)
+                    {
+                      manipulator->joints[i].reqSpeed = manipulator->joints[i].topSpeed;
+                    }
+                    else
+                    {
+                      manipulator->joints[i].reqSpeed = (SPEED_TEST * manipulator->globalSpeedPercentage);
+                    }
                   }
                   else
                   {
                     manipulator->joints[i].reqSpeed = 0;
+                  }
+                  if((abs(manipulator->joints[i].reqSpeed) > abs(manipulator->joints[i].realSpeed)) &&
+                     (abs(manipulator->joints[i].reqSpeed - manipulator->joints[i].realSpeed) > manipulator->joints[i].maxAccel))
+                  {
+                    manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * (manipulator->joints[i].realSpeed + manipulator->joints[i].maxAccel);
                   }
                 }
                 allInPlace = TRUE;
@@ -309,11 +396,11 @@ static void mainTimerHandler(void)
         {
           if(!manipulator->joints[i].inverted)
           {
-            manipulator->joints[i].direction = (manipulator->joints[i].reqSpeed >= 0) ? FORWARD : BACK;
+            manipulator->joints[i].direction = (manipulator->joints[i].reqSpeed < 0) ? BACK : FORWARD;
           }
           else
           {
-            manipulator->joints[i].direction = (manipulator->joints[i].reqSpeed >= 0) ? BACK : FORWARD;
+            manipulator->joints[i].direction = (manipulator->joints[i].reqSpeed < 0) ? FORWARD : BACK;
           }
           if(manipulator->joints[i].reqSpeed == 0)
           {
@@ -321,7 +408,7 @@ static void mainTimerHandler(void)
           }
           else
           {
-            double jointFreqHz = abs(manipulator->joints[i].reqSpeed) * STEP_DIVIDER * manipulator->globalSpeedPercentage;
+            double jointFreqHz = abs(manipulator->joints[i].reqSpeed) * STEP_DIVIDER;
             while((0xFFFFFFFE / (jointFreqHz * manipulator->joints[i].timer.divide)) < CLOCK_FREQ_HZ)
             {
               manipulator->joints[i].timer.divide++;    
@@ -387,7 +474,7 @@ static void manipulator_enableTimer(void)
   }
   TRACE_DEBUG("Timer Counter multiplicator = %d\n\r", multiplicator);
   TRACE_DEBUG("Maximum peripherial frequency = %d Hz\n\r", (BOARD_MCK / div) / AT91C_BASE_TC0->TC_RC);
-  AIC_ConfigureIT(AT91C_ID_TC0, AT91C_AIC_PRIOR_HIGHEST, mainTimerHandler);
+  AIC_ConfigureIT(AT91C_ID_TC0, AT91C_AIC_PRIOR_HIGHEST, manipulator_handler);
   AT91C_BASE_TC0->TC_IER = AT91C_TC_CPCS;
   AIC_EnableIT(AT91C_ID_TC0);
   TC_Start(AT91C_BASE_TC0);
@@ -424,11 +511,15 @@ void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv, Comport *c
     manipulator->joints[i].moving = FALSE;
     manipulator->joints[i].sensZeroPos = FALSE;
     manipulator->joints[i].realPos = 0;
+    manipulator->joints[i].oldPos = 0;
     manipulator->joints[i].reqPos = 0;
     manipulator->joints[i].maxPos = 0;
     manipulator->joints[i].realSpeed = 0;
     manipulator->joints[i].reqSpeed = 0;
     manipulator->joints[i].maxSpeed = 0;
+    manipulator->joints[i].limitTopSpeed = FALSE;
+    manipulator->joints[i].topSpeed = 0;
+    manipulator->joints[i].maxAccel = 0;
     manipulator->joints[i].clockFreq = 0;
     manipulator->joints[i].direction = FORWARD;
     manipulator->joints[i].inverted = FALSE;
@@ -466,11 +557,7 @@ void manipulator_configure(CommanderTicker ct)
   }
   parser.timer.compare = (unsigned int)(CLOCK_FREQ_HZ / (PARSER_FREQ_HZ * parser.timer.divide));  
   TRACE_DEBUG("Parser timer frequency = %d Hz\n\r", PARSER_FREQ_HZ);
-  // TODO:
-  // Define this somewhere else
-  manipulator->joints[JOINT_X].inverted = TRUE;
-  manipulator->joints[JOINT_Y].inverted = TRUE;
-  manipulator->joints[JOINT_ZR].inverted = TRUE;
+  manipulator_configureJoints();
 }
 
 void manipulator_startParser(void)
