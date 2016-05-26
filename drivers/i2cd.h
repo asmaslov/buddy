@@ -14,12 +14,12 @@
 #define DEFAULT_MASTER_ADDRESS 0x0F
 #define DEFAULT_MASTER_ADDRESS_LEN 1
 
-#define I2C_MAX_FREQ_HZ 50000
-#define I2C_FREQ_HZ 20000
+#define I2C_MAX_FREQ_HZ 100000
+#define I2C_FREQ_HZ      90000
 #define I2C_MAX_ATTEMPT 50000
 
 #define TRANSFER_WRITE 0
-#define TRANSFER_READ 1
+#define TRANSFER_READ  1
 
 static const Pin TWI_pins[] = { PINS_TWI };
 
