@@ -182,7 +182,7 @@ int main(void)
         looptrace = FALSE;
       }
       
-      manipulator.globalSpeedPercentage = trimmer;
+      manipulator.globalSpeedMultiplier = trimmer;
 
       if(commandVault.leftFeedbacks > 0)
       {

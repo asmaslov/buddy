@@ -32,10 +32,10 @@ static void manipulator_configureJoints(void)
   manipulator->joints[JOINT_Y].maxSpeed = SPEED_MAX;
   manipulator->joints[JOINT_ZL].maxSpeed = SPEED_MAX;
   manipulator->joints[JOINT_ZR].maxSpeed = SPEED_MAX;
-  manipulator->joints[JOINT_X].maxAccel = ACCELERATION_MAX;
-  manipulator->joints[JOINT_Y].maxAccel = ACCELERATION_MAX;
-  manipulator->joints[JOINT_ZL].maxAccel = ACCELERATION_MAX;
-  manipulator->joints[JOINT_ZR].maxAccel = ACCELERATION_MAX;
+  manipulator->joints[JOINT_X].maxAccel = ACCELERATION;
+  manipulator->joints[JOINT_Y].maxAccel = ACCELERATION;
+  manipulator->joints[JOINT_ZL].maxAccel = ACCELERATION;
+  manipulator->joints[JOINT_ZR].maxAccel = ACCELERATION;
   /*manipulator->joints[JOINT_X].maxPos = JOINT_X_MAX;
   manipulator->joints[JOINT_Y].maxPos = JOINT_Y_MAX;
   manipulator->joints[JOINT_ZL].maxPos = JOINT_ZL_MAX;
@@ -177,10 +177,10 @@ static void manipulator_handler(void)
         switch (manipulator->control)
         {
           case CONTROL_SPEED:
-            manipulator->joints[JOINT_X].reqSpeed = commandVault->values.speedX * manipulator->globalSpeedPercentage;
-            manipulator->joints[JOINT_Y].reqSpeed = commandVault->values.speedY * manipulator->globalSpeedPercentage;
-            manipulator->joints[JOINT_ZL].reqSpeed = commandVault->values.speedZL * manipulator->globalSpeedPercentage;          
-            manipulator->joints[JOINT_ZR].reqSpeed = commandVault->values.speedZR * manipulator->globalSpeedPercentage;
+            manipulator->joints[JOINT_X].reqSpeed = commandVault->values.speedX * manipulator->globalSpeedMultiplier;
+            manipulator->joints[JOINT_Y].reqSpeed = commandVault->values.speedY * manipulator->globalSpeedMultiplier;
+            manipulator->joints[JOINT_ZL].reqSpeed = commandVault->values.speedZL * manipulator->globalSpeedMultiplier;          
+            manipulator->joints[JOINT_ZR].reqSpeed = commandVault->values.speedZR * manipulator->globalSpeedMultiplier;
             for(int i = 0; i < TOTAL_JOINTS; i++)
             {
               if(abs(manipulator->joints[i].reqSpeed) > manipulator->joints[i].maxSpeed)
@@ -198,7 +198,7 @@ static void manipulator_handler(void)
                 {
                   if(!manipulator->joints[i].sensZeroPos)
                   {
-                    manipulator->joints[i].reqSpeed = -SPEED_CALIBRATE * manipulator->globalSpeedPercentage;
+                    manipulator->joints[i].reqSpeed = SPEED_CALIBRATE_MULTIPLIED;
                   }
                   else
                   {
@@ -221,21 +221,17 @@ static void manipulator_handler(void)
                   commandVault->requests.instruction = INSTRUCTION_GOTO;
                   commandVault->requests.parameters[0] = JOINT_XYZLZR;
                   commandVault->requests.parameters[1] = ZERO_GAP;
-                  //commandVault->requests.parameters[2] = 0;
-                  commandVault->requests.parameters[2] = 20;
+                  commandVault->requests.parameters[2] = 0;
                   commandVault->requests.parameters[3] = ZERO_GAP;
-                  //commandVault->requests.parameters[4] = 0;
-                  commandVault->requests.parameters[4] = 20;
+                  commandVault->requests.parameters[4] = 0;
                   commandVault->requests.parameters[5] = ZERO_GAP;
-                  //commandVault->requests.parameters[6] = 0;
-                  commandVault->requests.parameters[6] = 20;
+                  commandVault->requests.parameters[6] = 0;
                   commandVault->requests.parameters[7] = ZERO_GAP;
-                  //commandVault->requests.parameters[8] = 0;
-                  commandVault->requests.parameters[8] = 20;
-                  commandVault->requests.parameters[9] = 0;
-                  commandVault->requests.parameters[10] = 0;
-                  commandVault->requests.parameters[11] = 0;
-                  commandVault->requests.parameters[12] = 0;
+                  commandVault->requests.parameters[8] = 0;
+                  commandVault->requests.parameters[9] = SPEED_TEST;
+                  commandVault->requests.parameters[10] = SPEED_TEST;
+                  commandVault->requests.parameters[11] = SPEED_TEST;
+                  commandVault->requests.parameters[12] = SPEED_TEST;
                   commandVault->requests.newIns = TRUE;
                 }
               break;
@@ -316,9 +312,7 @@ static void manipulator_handler(void)
                   }
                 }
                 for(int i = 0; i < TOTAL_JOINTS; i++)
-                {
-                  // TODO:
-                  // Calculate reqSpeeds from reqPositions with regulators and stuff                                  
+                {                               
                   if(manipulator->joints[i].topSpeed != 0)
                   {
                     manipulator->joints[i].limitTopSpeed = TRUE;
@@ -333,36 +327,46 @@ static void manipulator_handler(void)
                   {
                     manipulator->joints[i].reqPos = manipulator->joints[i].maxPos;
                   }*/
+                  // Dead zone sense and speed reference
                   if(manipulator->joints[i].reqPos < manipulator->joints[i].realPos - DEAD_ZONE / 2)
                   {
                     if(manipulator->joints[i].limitTopSpeed)
                     {
-                      manipulator->joints[i].reqSpeed = -manipulator->joints[i].topSpeed;
+                      manipulator->joints[i].reqSpeed = -(manipulator->joints[i].topSpeed * manipulator->globalSpeedMultiplier);
                     }
                     else
                     {
-                      manipulator->joints[i].reqSpeed = -(SPEED_TEST * manipulator->globalSpeedPercentage);
+                      manipulator->joints[i].reqSpeed = -(SPEED_MAX * manipulator->globalSpeedMultiplier);
                     }
                   }
                   else if(manipulator->joints[i].reqPos > manipulator->joints[i].realPos + DEAD_ZONE / 2)
                   {
                     if(manipulator->joints[i].limitTopSpeed)
                     {
-                      manipulator->joints[i].reqSpeed = manipulator->joints[i].topSpeed;
+                      manipulator->joints[i].reqSpeed = manipulator->joints[i].topSpeed * manipulator->globalSpeedMultiplier;
                     }
                     else
                     {
-                      manipulator->joints[i].reqSpeed = (SPEED_TEST * manipulator->globalSpeedPercentage);
+                      manipulator->joints[i].reqSpeed = (SPEED_MAX * manipulator->globalSpeedMultiplier);
                     }
                   }
                   else
                   {
                     manipulator->joints[i].reqSpeed = 0;
                   }
-                  if((abs(manipulator->joints[i].reqSpeed) > abs(manipulator->joints[i].realSpeed)) &&
-                     (abs(manipulator->joints[i].reqSpeed - manipulator->joints[i].realSpeed) > manipulator->joints[i].maxAccel))
+                  // If not near the end then limit acceleration
+                  if(manipulator->joints[i].realSpeed < ((manipulator->joints[i].reqPos - manipulator->joints[i].realPos) * manipulator->joints[i].maxAccel / (ACCELERATION * DECELERATION_DIVIDER)))
                   {
-                    manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * (manipulator->joints[i].realSpeed + manipulator->joints[i].maxAccel);
+                    if((abs(manipulator->joints[i].reqSpeed) > abs(manipulator->joints[i].realSpeed)) &&
+                       (abs(manipulator->joints[i].reqSpeed - manipulator->joints[i].realSpeed) > manipulator->joints[i].maxAccel))
+                    {
+                      manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * (manipulator->joints[i].realSpeed + manipulator->joints[i].maxAccel);
+                    }
+                  }
+                  // If near the end then begin deceleration
+                  else
+                  {
+                    manipulator->joints[i].reqSpeed = (manipulator->joints[i].reqPos - manipulator->joints[i].realPos) * manipulator->joints[i].maxAccel / (ACCELERATION * DECELERATION_DIVIDER);
                   }
                 }
                 allInPlace = TRUE;
@@ -492,7 +496,7 @@ void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv, Comport *c
   comport = cp;
   parser_enable(&parser, commandVault);
   comport_setParserFunc(parser_work);  
-  manipulator->globalSpeedPercentage = 0;
+  manipulator->globalSpeedMultiplier = 0;
   manipulator->control = CONTROL_SPEED;
   manipulator->calibrated = FALSE;
   manipulator->realx = 0;
