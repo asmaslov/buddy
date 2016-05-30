@@ -43,7 +43,7 @@ static void sw1Handler(void)
     if((timestamp - sw1HandlerTimestamp) > DEBOUNCE_TIME)
     {
       sw1HandlerTimestamp = timestamp;
-      TRACE_DEBUG("Manipulator motors enabled\n\r");
+      TRACE_INFO("Manipulator motors enabled\n\r");
       manipulator_unfreeze();
     }    
   }
@@ -56,7 +56,7 @@ static void sw2Handler(void)
     if((timestamp - sw2HandlerTimestamp) > DEBOUNCE_TIME)
     {
       sw2HandlerTimestamp = timestamp;
-      TRACE_DEBUG("Manipulator motors disabled\n\r");
+      TRACE_INFO("Manipulator motors disabled\n\r");
       manipulator_freeze();
     }    
   }
@@ -110,7 +110,7 @@ int main(void)
   //PWM pwm;
   //pwm_enable(&pwm);
   comport_enable(&comport);
-  comport_configure(USART0, 57600);
+  comport_configure(USART0, BAUDRATE);
   // ---
   
   // User hello
@@ -187,7 +187,7 @@ int main(void)
       if(commandVault.leftFeedbacks > 0)
       {
         commandVault.leftFeedbacks--;
-        commander_reply();
+        commander_reply(REPLY_PACKET_TYPE_STATUS);
       }
       
       if(commandVault.holdkeys.buttonA)

@@ -9,7 +9,8 @@
 static Commander *commander;
 static CommandVault *commandVault;
 static Comport *comport;
-static ReplyPacket reply;
+
+ReplyPacket reply;
 
 static const Pin NodPower_pin = {BIT6, AT91C_BASE_PIOA, AT91C_ID_PIOA, PIO_OUTPUT_1, PIO_DEFAULT};
 
@@ -173,7 +174,9 @@ CommanderTicker commander_init(Commander *c, CommandVault *cv, Comport *cp)
   // Create real nods
   commander_createNod(ENDIR12_ADDRESS, 1, 1);
   commander_createNod(ENDIR34_ADDRESS, 1, 1);
-  for(int i = 0; i < PACKET_LEN; i++)
+  reply.unit = DEFAULT_PAD_ADDR;
+  reply.type = REPLY_PACKET_TYPE_STATUS;
+  for(int i = REPLY_PACKET_PART_IDX_H; i < REPLY_PACKET_LEN; i++)
   {
     reply.bytes[i] = 0;
   }
@@ -240,11 +243,34 @@ void commander_stop(void)
   commander->timer.enabled = FALSE;
 }
 
-void commander_reply(void)
+void commander_reply(unsigned char type)
 {
-  for(int i = 0; i < PACKET_LEN; i++)
+  // TODO:
+  // Fill status packet bits
+  reply.ready = commandVault->status.ready;
+  
+  for(int i = REPLY_PACKET_PART_START; i < REPLY_PACKET_PART_SPECIAL; i++)
   {
     comport_uputchar(reply.bytes[i]);
+    reply.crc += reply.bytes[i];
   }
-  
+  switch (type)
+  {
+    case REPLY_PACKET_TYPE_STATUS:
+      reply.special = 0;
+      comport_uputchar(reply.special);
+    break;
+    case REPLY_PACKET_TYPE_MESSAGE:
+      reply.special = commandVault->status.messageLen;
+      comport_uputchar(reply.special);
+      for(int i = 0; i < commandVault->status.messageLen; i++)
+      {
+        comport_uputchar(commandVault->status.message[i]);
+        reply.crc += commandVault->status.message[i];
+      }
+    break;
+  }
+  reply.crc += reply.special;;
+  comport_uputchar(reply.crcH);
+  comport_uputchar(reply.crcL);
 }

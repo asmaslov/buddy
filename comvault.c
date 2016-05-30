@@ -13,7 +13,7 @@ void commandVault_init(CommandVault *cv)
   
   commandVault->requests.newIns = FALSE;
   commandVault->requests.stopAll = FALSE;
-  commandVault->requests.instruction = INSTRUCTION_STOP;
+  commandVault->requests.instruction = INSTRUCTION_STOP_INIT;
   
   commandVault->values.speedX = 0;
   commandVault->values.speedY = 0;
@@ -32,6 +32,7 @@ void commandVault_init(CommandVault *cv)
   commandVault->outputs.endir12 = 0;
   commandVault->outputs.endir34 = 0;
   
+  commandVault->status.ready = FALSE;
   commandVault->status.instructionDone = FALSE;
 }
 

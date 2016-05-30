@@ -72,6 +72,7 @@ static void manipulator_handler(void)
        manipulator->joints[JOINT_Y].sensZeroPos = ((commandVault->status.stat12 & (1 << 6)) == 0) ? TRUE : FALSE;
        manipulator->joints[JOINT_ZL].sensZeroPos = ((commandVault->status.stat34 & (1 << 6)) == 0) ? TRUE : FALSE;
        manipulator->joints[JOINT_ZR].sensZeroPos = ((commandVault->status.stat34 & (1 << 7)) == 0) ? TRUE : FALSE;
+       commandVault->status.ready = allJointsConnected;
        commandVault_unlock();
      }
     }
@@ -137,6 +138,7 @@ static void manipulator_handler(void)
         }
         if(commandVault->requests.stopAll)
         {
+          manipulator->globalMotorsTickersEnabled = TRUE;
           for(int i = 0; i < TOTAL_JOINTS; i++)
           {
              manipulator->joints[i].reqSpeed = 0;

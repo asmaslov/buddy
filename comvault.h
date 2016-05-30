@@ -46,9 +46,12 @@ typedef struct _Outputs {
 } Outputs;
 
 typedef struct _Status {
+  bit ready;
   bit instructionDone;
+  unsigned char messageLen;
+  unsigned char message[MESSAGE_MAX_LEN];
   unsigned char stat12;
-  unsigned char stat34; 
+  unsigned char stat34;
 } Status;
 
 typedef struct _CommandVault {
@@ -68,7 +71,5 @@ void commandVault_lock(void);
 void commandVault_unlock(void);
 
 int commandVault_locked(void);
-
-void commander_reply(void);
 
 #endif //#ifndef COMVAULT_H

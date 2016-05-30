@@ -51,6 +51,6 @@ void commander_start(void);
 
 void commander_stop(void);
 
-void commander_reply(void);
+void commander_reply(unsigned char type);
 
 #endif //#ifndef COMMANDER_H

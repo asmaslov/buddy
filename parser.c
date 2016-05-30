@@ -16,7 +16,8 @@ void parser_enable(Parser *p, CommandVault *cv)
   parser = p;
   SANITY_CHECK(cv);
   commandVault = cv;
-  ASSERT((sizeof(ControlPacket) == PACKET_LEN), "Packet length not equal to real structure size\n\r");
+  ASSERT((sizeof(ControlPacket) == CONTROL_PACKET_LEN), "Control packet length not equal to real structure size\n\r");
+  ASSERT((sizeof(ReplyPacket) == REPLY_PACKET_LEN), "Reply packet length not equal to real structure size\n\r");
   parser->nextPartIdx = 0;
   parser->lastPacketIdx = 0;
   parser->packetRcvd = FALSE;
@@ -37,26 +38,26 @@ void parser_work(unsigned char *buf, int size)
   for(int i = 0; i < size; i++)
   {
     recByte = *(buf + i);
-    if(parser->nextPartIdx == PACKET_PART_CRC_L)
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_CRC_L)
     {
       parser->packet.crcL = recByte;
-      parser->nextPartIdx = PACKET_PART_START;
+      parser->nextPartIdx = CONTROL_PACKET_PART_START;
       parser->packetRcvd = TRUE;
     }
-    if(parser->nextPartIdx == PACKET_PART_CRC_H)
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_CRC_H)
     {
       parser->packet.crcH = recByte;
       parser->nextPartIdx++;
     }
-    if(parser->nextPartIdx == PACKET_PART_SPECIAL)
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_SPECIAL)
     {
       switch (parser->packet.type)
       {
-        case CONTROL_PACKET_MANUAL:
-          parser->packet.special.byte = recByte;
+        case CONTROL_PACKET_TYPE_MANUAL:
+          parser->packet.special = recByte;
           parser->nextPartIdx++;
         break;
-        case CONTROL_PACKET_INSTRUCTION:
+        case CONTROL_PACKET_TYPE_INSTRUCTION:
           if(instructionLen == 0)
           {
             if(recByte != 0)
@@ -66,7 +67,7 @@ void parser_work(unsigned char *buf, int size)
             }
             else
             {
-              parser->packet.special.byte = 0;
+              parser->packet.special = 0;
               parser->nextPartIdx++;
             }
           }
@@ -81,25 +82,25 @@ void parser_work(unsigned char *buf, int size)
         break;
       }
     }
-    if((parser->nextPartIdx < PACKET_PART_SPECIAL) && (parser->nextPartIdx >= PACKET_PART_CONTROLS))
+    if((parser->nextPartIdx < CONTROL_PACKET_PART_SPECIAL) && (parser->nextPartIdx >= CONTROL_PACKET_PART_CONTROLS))
     {
       parser->packet.bytes[parser->nextPartIdx] = recByte;
       parser->nextPartIdx++;
     } 
-    if(parser->nextPartIdx == PACKET_PART_IDX_L)
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_IDX_L)
     {
       parser->packet.idxL = recByte;
       parser->nextPartIdx++;
     }
-    if(parser->nextPartIdx == PACKET_PART_IDX_H)
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_IDX_H)
     {
       parser->packet.idxH = recByte;
       parser->nextPartIdx++;
     }
-    if(parser->nextPartIdx == PACKET_PART_TYPE)
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_TYPE)
     {
-      if ((CONTROL_PACKET_MANUAL == recByte)
-       || (CONTROL_PACKET_INSTRUCTION == recByte))
+      if ((CONTROL_PACKET_TYPE_MANUAL == recByte)
+       || (CONTROL_PACKET_TYPE_INSTRUCTION == recByte))
       {
         parser->packet.type = recByte;
         parser->nextPartIdx++;
@@ -107,10 +108,10 @@ void parser_work(unsigned char *buf, int size)
       }
       else
       {
-        parser->nextPartIdx = PACKET_PART_START;
+        parser->nextPartIdx = CONTROL_PACKET_PART_START;
       }
     }
-    if((parser->nextPartIdx == PACKET_PART_START) && (DEFAULT_UNIT_ADDR == recByte) && (!parser->packetRcvd))
+    if((parser->nextPartIdx == CONTROL_PACKET_PART_START) && (DEFAULT_UNIT_ADDR == recByte) && (!parser->packetRcvd))
     {
       parser->packet.unit = recByte;
       parser->nextPartIdx++;
@@ -122,8 +123,8 @@ void parser_work(unsigned char *buf, int size)
     unsigned short checkCRC = 0;
     switch (parser->packet.type)
     {
-      case CONTROL_PACKET_MANUAL:
-        for(int i = 0; i < PACKET_LEN - 2; i++)
+      case CONTROL_PACKET_TYPE_MANUAL:
+        for(int i = 0; i < CONTROL_PACKET_LEN - 2; i++)
         {
           checkCRC += parser->packet.bytes[i];
         }
@@ -137,8 +138,8 @@ void parser_work(unsigned char *buf, int size)
           }
         }
       break;
-      case CONTROL_PACKET_INSTRUCTION:
-        for(int i = 0; i < PACKET_LEN - 3; i++)
+      case CONTROL_PACKET_TYPE_INSTRUCTION:
+        for(int i = 0; i < CONTROL_PACKET_LEN - 3; i++)
         {
           checkCRC += parser->packet.bytes[i];
         }
@@ -163,17 +164,17 @@ void parser_work(unsigned char *buf, int size)
   {
     parser->packetGood = FALSE; 
     commandVault_lock();
-    switch (parser->packet.codes.segment)
+    switch (parser->packet.segment)
     {
       case SEGMENT_MAIN:
         commandVault->values.speedX = parser->packet.leftJoyX.val * (parser->packet.leftJoyX.sign == 0 ? 1 : -1);
         commandVault->values.speedY = parser->packet.leftJoyY.val * (parser->packet.leftJoyY.sign == 0 ? 1 : -1);
         commandVault->values.speedZR = parser->packet.rightJoyX.val * (parser->packet.rightJoyX.sign == 0 ? 1 : -1);
         commandVault->values.speedZL = parser->packet.rightJoyY.val * (parser->packet.rightJoyY.sign == 0 ? 1 : -1);
-        commandVault->holdkeys.crossUp = parser->packet.codes.crossUp;
-        commandVault->holdkeys.crossDown = parser->packet.codes.crossDown;
-        commandVault->holdkeys.crossLeft = parser->packet.codes.crossLeft;
-        commandVault->holdkeys.crossRight = parser->packet.codes.crossRight;
+        commandVault->holdkeys.crossUp = parser->packet.crossUp;
+        commandVault->holdkeys.crossDown = parser->packet.crossDown;
+        commandVault->holdkeys.crossLeft = parser->packet.crossLeft;
+        commandVault->holdkeys.crossRight = parser->packet.crossRight;
       break;
       case SEGMENT_AUTO:
       
@@ -183,23 +184,23 @@ void parser_work(unsigned char *buf, int size)
         commandVault->values.speedY = parser->packet.leftJoyY.val * (parser->packet.leftJoyY.sign == 0 ? 1 : -1);
         commandVault->values.speedZR = parser->packet.rightJoyX.val * (parser->packet.rightJoyX.sign == 0 ? 1 : -1);
         commandVault->values.speedZL = parser->packet.rightJoyY.val * (parser->packet.rightJoyY.sign == 0 ? 1 : -1);
-        commandVault->holdkeys.crossUp = parser->packet.codes.crossUp;
-        commandVault->holdkeys.crossDown = parser->packet.codes.crossDown;
-        commandVault->holdkeys.crossLeft = parser->packet.codes.crossLeft;
-        commandVault->holdkeys.crossRight = parser->packet.codes.crossRight;
+        commandVault->holdkeys.crossUp = parser->packet.crossUp;
+        commandVault->holdkeys.crossDown = parser->packet.crossDown;
+        commandVault->holdkeys.crossLeft = parser->packet.crossLeft;
+        commandVault->holdkeys.crossRight = parser->packet.crossRight;
     }    
     switch (parser->packet.type)
     {
-      case CONTROL_PACKET_MANUAL:
-        commandVault->holdkeys.buttonA = parser->packet.special.buttonA;
-        commandVault->holdkeys.buttonB = parser->packet.special.buttonB;
-        commandVault->holdkeys.buttonX = parser->packet.special.buttonX;
-        commandVault->holdkeys.buttonY = parser->packet.special.buttonY;
-      break;      
-      case CONTROL_PACKET_INSTRUCTION:
+      case CONTROL_PACKET_TYPE_MANUAL:
+        commandVault->holdkeys.buttonA = parser->packet.buttonA;
+        commandVault->holdkeys.buttonB = parser->packet.buttonB;
+        commandVault->holdkeys.buttonX = parser->packet.buttonX;
+        commandVault->holdkeys.buttonY = parser->packet.buttonY;
+      break;  
+      case CONTROL_PACKET_TYPE_INSTRUCTION:
         if(instructionLen != 0)
         {
-          if(instruction[0] == INSTRUCTION_STOP)
+          if(instruction[0] == INSTRUCTION_STOP_INIT)
           {
             commandVault->requests.stopAll = TRUE;
           }
@@ -221,7 +222,7 @@ void parser_work(unsigned char *buf, int size)
           instructionLen = 0;          
           commandVault->leftFeedbacks++;
         }
-      break;            
+      break;
     }
     commandVault_unlock();
   }  

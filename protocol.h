@@ -1,31 +1,58 @@
 #ifndef PROTOCOL_H
 #define PROTOCOL_H
 
-#define PACKET_LEN 12
-
 // Unit address range [0x00 .. 0x7F]
 //  Pad address range [0x80 .. 0xFF]
 
-#define DEFAULT_UNIT_ADDR 0x0F
-#define DEFAULT_PAD_ADDR  0x8F
+#define BAUDRATE 57600
 
-#define CONTROL_PACKET_MANUAL      0xFF
-#define CONTROL_PACKET_INSTRUCTION 0xFE
+#define CONTROL_PACKET_LEN 12
+
+#define DEFAULT_UNIT_ADDR 0x0F
+
+#define CONTROL_PACKET_PART_START     0
+#define CONTROL_PACKET_PART_TYPE      1
+#define CONTROL_PACKET_PART_IDX_H     2
+#define CONTROL_PACKET_PART_IDX_L     3
+#define CONTROL_PACKET_PART_CONTROLS  4
+#define CONTROL_PACKET_PART_SPECIAL   9
+#define CONTROL_PACKET_PART_CRC_H    10
+#define CONTROL_PACKET_PART_CRC_L    11
+
+#define CONTROL_PACKET_TYPE_MANUAL      0xFF
+#define CONTROL_PACKET_TYPE_INSTRUCTION 0xFE
 
 #define MAX_PACKET_INDEX 0xFFFF
-
-#define REPLY_PACKET_0 0xEF
-#define REPLY_PACKET_1 0xEE
-#define REPLY_PACKET_2 0xED
-#define REPLY_PACKET_3 0xEC
 
 #define SEGMENT_MAIN 0x00
 #define SEGMENT_AUTO 0x0F
 
 #define INSTRUCTION_MAX_LEN   20
-#define INSTRUCTION_STOP       0
+#define INSTRUCTION_STOP_INIT  0
 #define INSTRUCTION_CALIBRATE  1 
 #define INSTRUCTION_GOTO       2
+
+
+#define REPLY_PACKET_LEN 8
+
+#define DEFAULT_PAD_ADDR  0x8F
+
+#define REPLY_PACKET_PART_START   0
+#define REPLY_PACKET_PART_TYPE    1
+#define REPLY_PACKET_PART_IDX_H   2
+#define REPLY_PACKET_PART_IDX_L   3
+#define REPLY_PACKET_PART_STATUS  4
+#define REPLY_PACKET_PART_SPECIAL 5
+#define REPLY_PACKET_PART_CRC_H   6
+#define REPLY_PACKET_PART_CRC_L   7
+
+#define REPLY_PACKET_TYPE_STATUS 0xEF
+#define REPLY_PACKET_TYPE_MESSAGE 0xEE
+
+#define MESSAGE_MAX_LEN   20
+#define MESSAGE_POSITION 0
+#define MESSAGE_SENSORS  1 
+
 
 #define TOTAL_JOINTS 4
 
@@ -46,17 +73,8 @@
 #define JOINT_ZR_MAX
 #define JOINT_ZL_MAX*/
 
-#define PACKET_PART_START     0
-#define PACKET_PART_TYPE      1
-#define PACKET_PART_IDX_H     2
-#define PACKET_PART_IDX_L     3
-#define PACKET_PART_CONTROLS  4
-#define PACKET_PART_SPECIAL   9
-#define PACKET_PART_CRC_H    10
-#define PACKET_PART_CRC_L    11
-
 typedef union {
-  unsigned char bytes[PACKET_LEN];
+  unsigned char bytes[CONTROL_PACKET_LEN];
   struct {
     unsigned char unit;
     unsigned char type;
@@ -96,7 +114,7 @@ typedef union {
       };
     } rightJoyY;
     union {
-      unsigned char byte;
+      unsigned char codes;
       struct {
         unsigned char segment : 4;
         unsigned char crossUp : 1;
@@ -104,9 +122,9 @@ typedef union {
         unsigned char crossLeft : 1;
         unsigned char crossRight : 1;
       };
-    } codes;
+    };
     union {
-      unsigned char byte;
+      unsigned char special;
       struct {
         unsigned char buttonA : 1;
         unsigned char buttonB : 1;
@@ -117,7 +135,7 @@ typedef union {
         unsigned char buttonR1 : 1;
         unsigned char buttonR2 : 1;
       };
-    } special;
+    };
     union {
       unsigned short crc;
       struct {
@@ -129,25 +147,33 @@ typedef union {
 } ControlPacket;
 
 typedef union {
-  unsigned char bytes[PACKET_LEN];
+  unsigned char bytes[REPLY_PACKET_LEN];
   struct {
     unsigned char unit;
     unsigned char type;
     union {
-      unsigned int word;
+      unsigned int short idx;
       struct {
-        unsigned char l;
-        unsigned char h;
+        unsigned char idxL;
+        unsigned char idxH;
       };
-    } idx;
-    unsigned char data[6];
+    };
     union {
-      unsigned int word;
+      unsigned char status;
       struct {
-        unsigned char l;
-        unsigned char h;
+        unsigned char ready : 1;
+        // TODO:
+        // Fill status packet bits
       };
-    } crc;
+    };
+    unsigned char special;
+    union {
+      unsigned short crc;
+      struct {
+        unsigned char crcL;
+        unsigned char crcH;
+      };
+    };
   };  
 } ReplyPacket;
 
