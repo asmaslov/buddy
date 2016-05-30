@@ -151,6 +151,11 @@ static void manipulator_handler(void)
           manipulator->control = CONTROL_POS;
           commandVault->requests.newIns = FALSE;
         }
+        if(commandVault->leftFeedbacks > 0)
+        {
+          commander_reply(REPLY_PACKET_TYPE_STATUS);
+          commandVault->leftFeedbacks--;
+        }
       }
     }
   }

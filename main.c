@@ -184,11 +184,7 @@ int main(void)
       
       manipulator.globalSpeedMultiplier = trimmer;
 
-      if(commandVault.leftFeedbacks > 0)
-      {
-        commandVault.leftFeedbacks--;
-        commander_reply(REPLY_PACKET_TYPE_STATUS);
-      }
+
       
       if(commandVault.holdkeys.buttonA)
       {

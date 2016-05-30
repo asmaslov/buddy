@@ -124,7 +124,7 @@ void parser_work(unsigned char *buf, int size)
     switch (parser->packet.type)
     {
       case CONTROL_PACKET_TYPE_MANUAL:
-        for(int i = 0; i < CONTROL_PACKET_LEN - 2; i++)
+        for(int i = CONTROL_PACKET_PART_START; i < CONTROL_PACKET_PART_CRC_H; i++)
         {
           checkCRC += parser->packet.bytes[i];
         }
@@ -139,11 +139,10 @@ void parser_work(unsigned char *buf, int size)
         }
       break;
       case CONTROL_PACKET_TYPE_INSTRUCTION:
-        for(int i = 0; i < CONTROL_PACKET_LEN - 3; i++)
+        for(int i = CONTROL_PACKET_PART_START; i < CONTROL_PACKET_PART_CRC_H; i++)
         {
           checkCRC += parser->packet.bytes[i];
         }
-        checkCRC += instructionLen;
         for(int i = 0; i < instructionLen; i++)
         {
           checkCRC += instruction[i];
@@ -220,10 +219,10 @@ void parser_work(unsigned char *buf, int size)
             TRACE_DEBUG("Manipulator busy\n\r");
           }
           instructionLen = 0;          
-          commandVault->leftFeedbacks++;
         }
       break;
     }
+    commandVault->leftFeedbacks++;
     commandVault_unlock();
   }  
 }
