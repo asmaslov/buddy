@@ -369,7 +369,7 @@ static void manipulator_handler(void)
                   }
                 #ifndef IGNORE_ACCELERATION_LIMITS
                   // If not near the end then limit acceleration
-                  if(abs(manipulator->joints[i].realSpeed) < abs((manipulator->joints[i].reqPos - manipulator->joints[i].realPos) * manipulator->joints[i].maxAccel / (ACCELERATION * DECELERATION_DIVIDER)))
+                  if(abs(manipulator->joints[i].realSpeed) < (abs(manipulator->joints[i].reqPos - manipulator->joints[i].realPos) * manipulator->joints[i].maxAccel / (ACCELERATION * DECELERATION_DIVIDER)))
                   {
                     if((abs(manipulator->joints[i].reqSpeed) > abs(manipulator->joints[i].realSpeed)) &&
                        (abs(manipulator->joints[i].reqSpeed - manipulator->joints[i].realSpeed) > manipulator->joints[i].maxAccel))
@@ -380,7 +380,7 @@ static void manipulator_handler(void)
                   // If near the end then begin deceleration
                   else
                   {
-                    manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * abs(manipulator->joints[i].reqPos - manipulator->joints[i].realPos) * manipulator->joints[i].maxAccel / (ACCELERATION * DECELERATION_DIVIDER);
+                    manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * (abs(manipulator->joints[i].reqPos - manipulator->joints[i].realPos) * manipulator->joints[i].maxAccel / (ACCELERATION * DECELERATION_DIVIDER));
                   }
                 #endif // IGNORE_ACCELERATION_LIMITS
                 }
