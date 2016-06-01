@@ -262,7 +262,7 @@ void commander_reply(unsigned char type)
     comport_uputchar(reply.bytes[i]);
     reply.crc += reply.bytes[i];
   }
-  switch (type)
+  switch(type)
   {
     case REPLY_PACKET_TYPE_STATUS:
       reply.special = 0;
@@ -278,7 +278,7 @@ void commander_reply(unsigned char type)
       }
     break;
   }
-  reply.crc += reply.special;;
+  reply.crc += reply.special;
   comport_uputchar(reply.crcH);
   comport_uputchar(reply.crcL);
 }
