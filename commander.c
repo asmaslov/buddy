@@ -249,6 +249,7 @@ void commander_reply(unsigned char type)
   // Fill status packet bits
   reply.ready = commandVault->status.ready;
   reply.idx = commandVault->lastPacketIdx;
+  reply.crc = 0;
   comport_uputchar(reply.unit);
   comport_uputchar(reply.type);
   comport_uputchar(reply.idxH);
