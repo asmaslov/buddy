@@ -138,7 +138,11 @@ static void manipulator_handler(void)
         }
         if(commandVault->requests.stopAll)
         {
-          manipulator->globalMotorsTickersEnabled = TRUE;
+          if(!manipulator->globalMotorsTickersEnabled)
+          {
+            manipulator_unfreeze();
+            TRACE_INFO("Manipulator motors enabled\n\r");
+          }
           for(int i = 0; i < TOTAL_JOINTS; i++)
           {
              manipulator->joints[i].reqSpeed = 0;
