@@ -248,8 +248,16 @@ void commander_reply(unsigned char type)
   // TODO:
   // Fill status packet bits
   reply.ready = commandVault->status.ready;
-  
-  for(int i = REPLY_PACKET_PART_START; i < REPLY_PACKET_PART_SPECIAL; i++)
+  reply.idx = commandVault->lastPacketIdx;
+  comport_uputchar(reply.unit);
+  comport_uputchar(reply.type);
+  comport_uputchar(reply.idxH);
+  comport_uputchar(reply.idxL);
+  for(int i = REPLY_PACKET_PART_START; i < REPLY_PACKET_PART_STATUS; i++)
+  {
+    reply.crc += reply.bytes[i];
+  }
+  for(int i = REPLY_PACKET_PART_STATUS; i < REPLY_PACKET_PART_SPECIAL; i++)
   {
     comport_uputchar(reply.bytes[i]);
     reply.crc += reply.bytes[i];

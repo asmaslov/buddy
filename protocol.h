@@ -152,7 +152,7 @@ typedef union {
     unsigned char unit;
     unsigned char type;
     union {
-      unsigned int short idx;
+      unsigned short idx;
       struct {
         unsigned char idxL;
         unsigned char idxH;

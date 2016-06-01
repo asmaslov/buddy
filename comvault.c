@@ -10,7 +10,7 @@ void commandVault_init(CommandVault *cv)
   SANITY_CHECK(cv);
   commandVault = cv;
   commandVault->key = 0;
-  
+    
   commandVault->requests.newIns = FALSE;
   commandVault->requests.stopAll = FALSE;
   commandVault->requests.instruction = INSTRUCTION_STOP_INIT;

@@ -57,6 +57,7 @@ typedef struct _Status {
 typedef struct _CommandVault {
   int key;
   unsigned int leftFeedbacks;
+  unsigned short lastPacketIdx;
   Values values;
   Holdkeys holdkeys;
   Requests requests;

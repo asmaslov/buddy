@@ -144,6 +144,8 @@ static void manipulator_handler(void)
              manipulator->joints[i].reqSpeed = 0;
           }
           manipulator->control = CONTROL_SPEED;
+          commandVault->status.instructionDone = TRUE;
+          TRACE_DEBUG("Manipulator stop\n\r");
           commandVault->requests.stopAll = FALSE;
         }
         else if(commandVault->requests.newIns)

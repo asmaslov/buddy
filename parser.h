@@ -7,9 +7,6 @@
 typedef struct _Parser {
   ControlPacket packet;
   unsigned char nextPartIdx;
-  unsigned short lastPacketIdx;
-  bit packetRcvd;
-  bit packetGood;
   SoftwareTimer timer;
 } Parser;
 

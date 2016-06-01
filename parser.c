@@ -10,159 +10,52 @@ static unsigned char instruction[INSTRUCTION_MAX_LEN];
 static unsigned char instructionLen = 0;
 static unsigned char instructionIdx = 0;
 
-void parser_enable(Parser *p, CommandVault *cv)
+static void checkPacket()
 {
-  SANITY_CHECK(p);
-  parser = p;
-  SANITY_CHECK(cv);
-  commandVault = cv;
-  ASSERT((sizeof(ControlPacket) == CONTROL_PACKET_LEN), "Control packet length not equal to real structure size\n\r");
-  ASSERT((sizeof(ReplyPacket) == REPLY_PACKET_LEN), "Reply packet length not equal to real structure size\n\r");
-  parser->nextPartIdx = 0;
-  parser->lastPacketIdx = 0;
-  parser->packetRcvd = FALSE;
-  parser->packetGood = FALSE;
-  parser->timer.enabled = FALSE;
-  parser->timer.tick = 0;
-  parser->timer.compare = 0;
-  parser->timer.mastertick = 0;
-  parser->timer.divide = 1; 
-  commandVault->leftFeedbacks = 0;
-}
-
-void parser_work(unsigned char *buf, int size)
-{
-  SANITY_CHECK(parser);
-  SANITY_CHECK(commandVault);  
-  unsigned char recByte;
-  for(int i = 0; i < size; i++)
+  unsigned short checkCRC = 0;
+  bit packetGood = FALSE;
+  commandVault_lock();
+  
+  switch (parser->packet.type)
   {
-    recByte = *(buf + i);
-    if(parser->nextPartIdx == CONTROL_PACKET_PART_CRC_L)
-    {
-      parser->packet.crcL = recByte;
-      parser->nextPartIdx = CONTROL_PACKET_PART_START;
-      parser->packetRcvd = TRUE;
-    }
-    if(parser->nextPartIdx == CONTROL_PACKET_PART_CRC_H)
-    {
-      parser->packet.crcH = recByte;
-      parser->nextPartIdx++;
-    }
-    if(parser->nextPartIdx == CONTROL_PACKET_PART_SPECIAL)
-    {
-      switch (parser->packet.type)
+    case CONTROL_PACKET_TYPE_MANUAL:
+      for(int i = CONTROL_PACKET_PART_START; i < CONTROL_PACKET_PART_CRC_H; i++)
       {
-        case CONTROL_PACKET_TYPE_MANUAL:
-          parser->packet.special = recByte;
-          parser->nextPartIdx++;
-        break;
-        case CONTROL_PACKET_TYPE_INSTRUCTION:
-          if(instructionLen == 0)
-          {
-            if(recByte != 0)
-            {
-              instructionLen = recByte;
-              instructionIdx = 0;
-            }
-            else
-            {
-              parser->packet.special = 0;
-              parser->nextPartIdx++;
-            }
-          }
-          else
-          {
-            instruction[instructionIdx] = recByte;
-            if(++instructionIdx == instructionLen)
-            {
-              parser->nextPartIdx++;
-            }
-          }
-        break;
+        checkCRC += parser->packet.bytes[i];
       }
-    }
-    if((parser->nextPartIdx < CONTROL_PACKET_PART_SPECIAL) && (parser->nextPartIdx >= CONTROL_PACKET_PART_CONTROLS))
-    {
-      parser->packet.bytes[parser->nextPartIdx] = recByte;
-      parser->nextPartIdx++;
-    } 
-    if(parser->nextPartIdx == CONTROL_PACKET_PART_IDX_L)
-    {
-      parser->packet.idxL = recByte;
-      parser->nextPartIdx++;
-    }
-    if(parser->nextPartIdx == CONTROL_PACKET_PART_IDX_H)
-    {
-      parser->packet.idxH = recByte;
-      parser->nextPartIdx++;
-    }
-    if(parser->nextPartIdx == CONTROL_PACKET_PART_TYPE)
-    {
-      if ((CONTROL_PACKET_TYPE_MANUAL == recByte)
-       || (CONTROL_PACKET_TYPE_INSTRUCTION == recByte))
+      if(checkCRC == parser->packet.crc)
       {
-        parser->packet.type = recByte;
-        parser->nextPartIdx++;
-        instructionLen = 0;
+        if((parser->packet.idx > commandVault->lastPacketIdx) ||
+           ((parser->packet.idx == 0) && (commandVault->lastPacketIdx == MAX_PACKET_INDEX)))
+        {    
+          commandVault->lastPacketIdx = parser->packet.idx;
+          packetGood = TRUE;
+        }
       }
-      else
+    break;
+    case CONTROL_PACKET_TYPE_INSTRUCTION:
+      for(int i = CONTROL_PACKET_PART_START; i < CONTROL_PACKET_PART_CRC_H; i++)
       {
-        parser->nextPartIdx = CONTROL_PACKET_PART_START;
+        checkCRC += parser->packet.bytes[i];
       }
-    }
-    if((parser->nextPartIdx == CONTROL_PACKET_PART_START) && (DEFAULT_UNIT_ADDR == recByte) && (!parser->packetRcvd))
-    {
-      parser->packet.unit = recByte;
-      parser->nextPartIdx++;
-    }
+      for(int i = 0; i < instructionLen; i++)
+      {
+        checkCRC += instruction[i];
+      }
+      if(checkCRC == parser->packet.crc)
+      {
+        if((parser->packet.idx > commandVault->lastPacketIdx) ||
+           ((parser->packet.idx == 0) && (commandVault->lastPacketIdx == MAX_PACKET_INDEX)))
+        {    
+          commandVault->lastPacketIdx = parser->packet.idx;
+          packetGood = TRUE;
+        }
+      }
+    break;
   }
-  if(parser->packetRcvd)
+  if(packetGood)
   {
-    parser->packetRcvd = FALSE;
-    unsigned short checkCRC = 0;
-    switch (parser->packet.type)
-    {
-      case CONTROL_PACKET_TYPE_MANUAL:
-        for(int i = CONTROL_PACKET_PART_START; i < CONTROL_PACKET_PART_CRC_H; i++)
-        {
-          checkCRC += parser->packet.bytes[i];
-        }
-        if(checkCRC == parser->packet.crc)
-        {
-          if((parser->packet.idx > parser->lastPacketIdx) ||
-             ((parser->packet.idx == 0) && (parser->lastPacketIdx == MAX_PACKET_INDEX)))
-          {    
-            parser->lastPacketIdx = parser->packet.idx;
-            parser->packetGood = TRUE;
-          }
-        }
-      break;
-      case CONTROL_PACKET_TYPE_INSTRUCTION:
-        for(int i = CONTROL_PACKET_PART_START; i < CONTROL_PACKET_PART_CRC_H; i++)
-        {
-          checkCRC += parser->packet.bytes[i];
-        }
-        for(int i = 0; i < instructionLen; i++)
-        {
-          checkCRC += instruction[i];
-        }
-        if(checkCRC == parser->packet.crc)
-        {
-          if((parser->packet.idx > parser->lastPacketIdx) ||
-             ((parser->packet.idx == 0) && (parser->lastPacketIdx == MAX_PACKET_INDEX)))
-          {    
-            parser->lastPacketIdx = parser->packet.idx;
-            parser->packetGood = TRUE;
-          }
-        }
-      break;
-    }
-  }
-  if(parser->packetGood)
-  {
-    parser->packetGood = FALSE; 
-    commandVault_lock();
+    TRACE_DEBUG("Packet number %d\n\r", commandVault->lastPacketIdx);
     switch (parser->packet.segment)
     {
       case SEGMENT_MAIN:
@@ -223,6 +116,113 @@ void parser_work(unsigned char *buf, int size)
       break;
     }
     commandVault->leftFeedbacks++;
-    commandVault_unlock();
   }  
+  commandVault_unlock();
+}
+
+void parser_enable(Parser *p, CommandVault *cv)
+{
+  SANITY_CHECK(p);
+  parser = p;
+  SANITY_CHECK(cv);
+  commandVault = cv;
+  ASSERT((sizeof(ControlPacket) == CONTROL_PACKET_LEN), "Control packet length not equal to real structure size\n\r");
+  ASSERT((sizeof(ReplyPacket) == REPLY_PACKET_LEN), "Reply packet length not equal to real structure size\n\r");
+  parser->nextPartIdx = 0;
+  parser->timer.enabled = FALSE;
+  parser->timer.tick = 0;
+  parser->timer.compare = 0;
+  parser->timer.mastertick = 0;
+  parser->timer.divide = 1; 
+  commandVault->leftFeedbacks = 0;
+  commandVault->lastPacketIdx = 0;
+}
+
+void parser_work(unsigned char *buf, int size)
+{
+  SANITY_CHECK(parser);
+  SANITY_CHECK(commandVault);  
+  unsigned char recByte;
+  for(int i = 0; i < size; i++)
+  {
+    recByte = *(buf + i);
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_CRC_L)
+    {
+      parser->packet.crcL = recByte;
+      parser->nextPartIdx = CONTROL_PACKET_PART_START;
+      checkPacket();
+    }
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_CRC_H)
+    {
+      parser->packet.crcH = recByte;
+      parser->nextPartIdx++;
+    }
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_SPECIAL)
+    {
+      switch (parser->packet.type)
+      {
+        case CONTROL_PACKET_TYPE_MANUAL:
+          parser->packet.special = recByte;
+          parser->nextPartIdx++;
+        break;
+        case CONTROL_PACKET_TYPE_INSTRUCTION:
+          if(instructionLen == 0)
+          {
+            parser->packet.special = recByte;
+            if(recByte != 0)
+            {
+              instructionLen = recByte;
+              instructionIdx = 0;
+            }
+            else
+            {
+              parser->nextPartIdx++;
+            }
+          }
+          else
+          {
+            instruction[instructionIdx] = recByte;
+            if(++instructionIdx == instructionLen)
+            {
+              parser->nextPartIdx++;
+            }
+          }
+        break;
+      }
+    }
+    if((parser->nextPartIdx < CONTROL_PACKET_PART_SPECIAL) && (parser->nextPartIdx >= CONTROL_PACKET_PART_CONTROLS))
+    {
+      parser->packet.bytes[parser->nextPartIdx] = recByte;
+      parser->nextPartIdx++;
+    } 
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_IDX_L)
+    {
+      parser->packet.idxL = recByte;
+      parser->nextPartIdx++;
+    }
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_IDX_H)
+    {
+      parser->packet.idxH = recByte;
+      parser->nextPartIdx++;
+    }
+    if(parser->nextPartIdx == CONTROL_PACKET_PART_TYPE)
+    {
+      if ((CONTROL_PACKET_TYPE_MANUAL == recByte)
+       || (CONTROL_PACKET_TYPE_INSTRUCTION == recByte))
+      {
+        parser->packet.type = recByte;
+        parser->nextPartIdx++;
+        instructionLen = 0;
+      }
+      else
+      {
+        parser->nextPartIdx = CONTROL_PACKET_PART_START;
+      }
+    }
+    if((parser->nextPartIdx == CONTROL_PACKET_PART_START) && (DEFAULT_UNIT_ADDR == recByte))
+    {
+      parser->packet.unit = recByte;
+      parser->nextPartIdx++;
+    }
+  }
 }

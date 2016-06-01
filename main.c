@@ -184,8 +184,6 @@ int main(void)
       
       manipulator.globalSpeedMultiplier = trimmer;
 
-
-      
       if(commandVault.holdkeys.buttonA)
       {
         TRACE_DEBUG("Button A\n\r");
