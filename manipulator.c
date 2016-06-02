@@ -341,7 +341,7 @@ static void manipulator_handler(void)
                     manipulator->joints[i].reqPos = manipulator->joints[i].maxPos;
                   }*/
                   // Dead zone sense and speed reference
-                  if(manipulator->joints[i].reqPos < manipulator->joints[i].realPos - DEAD_ZONE / 2)
+                  if(manipulator->joints[i].reqPos < manipulator->joints[i].realPos - HALF_DEAD_ZONE)
                   {
                     if(manipulator->joints[i].limitTopSpeed)
                     {
@@ -352,7 +352,7 @@ static void manipulator_handler(void)
                       manipulator->joints[i].reqSpeed = -(SPEED_MAX * manipulator->globalSpeedMultiplier);
                     }
                   }
-                  else if(manipulator->joints[i].reqPos > manipulator->joints[i].realPos + DEAD_ZONE / 2)
+                  else if(manipulator->joints[i].reqPos > manipulator->joints[i].realPos + HALF_DEAD_ZONE)
                   {
                     if(manipulator->joints[i].limitTopSpeed)
                     {
@@ -387,7 +387,7 @@ static void manipulator_handler(void)
                 allInPlace = TRUE;
                 for(int i = 0; i < TOTAL_JOINTS; i++)
                 {
-                  if(abs(manipulator->joints[i].realPos - manipulator->joints[i].reqPos) < DEAD_ZONE)
+                  if(abs(manipulator->joints[i].realPos - manipulator->joints[i].reqPos) < HALF_DEAD_ZONE)
                   {
                     manipulator->joints[i].reqSpeed = 0;
                   }

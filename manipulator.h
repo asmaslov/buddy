@@ -29,7 +29,7 @@
 #define ACCELERATION 8
 #define DECELERATION_DIVIDER 4
 #define ZERO_GAP 105
-#define DEAD_ZONE 10
+#define HALF_DEAD_ZONE 5
 
 #define STEP_DIVIDER 16
 
