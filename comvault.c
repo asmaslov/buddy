@@ -53,6 +53,23 @@ static bit freeInstructionMemory(Instruction *block)
   return TRUE;
 }
 
+static bit cleanInstructionMemory(void)
+{
+  bit unusedBlockFound = FALSE;
+  for(int i = 0; i < INSTRUCTIONS_MEMORY_SLOTS; i++)
+  {
+    if((instructionsMemory[i].busy == TRUE) &&
+       ((instructionsMemory[i].block.condition == INSTRUCTION_STATUS_DONE) ||
+        (instructionsMemory[i].block.condition == INSTRUCTION_STATUS_ERROR) ||
+        (instructionsMemory[i].block.condition == INSTRUCTION_STATUS_BREAK)))
+    {
+      instructionsMemory[i].busy = FALSE;
+      unusedBlockFound = TRUE;
+    }
+  }
+  return unusedBlockFound;
+}
+
 void commandVault_init(CommandVault *cv)
 {
   SANITY_CHECK(cv);
@@ -79,7 +96,8 @@ void commandVault_init(CommandVault *cv)
   commandVault->outputs.endir12 = 0;
   commandVault->outputs.endir34 = 0;
   
-  commandVault->status.ready = FALSE;
+  commandVault->status.ok = FALSE;
+  commandVault->status.busy = FALSE;
 
 }
 
@@ -110,11 +128,17 @@ bit addInstruction(Instruction *ins)
   memcpy(tmp, ins, sizeof(Instruction));
   tmp->next = commandVault->requests.instructions;
   commandVault->requests.instructions = tmp;
-  if(commandVault->requests.totalInstructions++ < MAX_SIMULTANEOUS_INSTRUCTIONS)
+  if(commandVault->requests.totalInstructions++ < (MAX_SIMULTANEOUS_INSTRUCTIONS - 1))
   {
     return TRUE;
   }
-  TRACE_DEBUG("Too many simultaneous instruction\n\r");
+  TRACE_DEBUG("Number of simultaneous instructions is close to maximum\n\r");
+  TRACE_DEBUG("Performing instructions memory clean\n\r");
+  if(cleanInstructionMemory())
+  {
+    return TRUE;
+  }
+  TRACE_DEBUG("Memory clean impossible\n\r");
   return FALSE;
 }
 

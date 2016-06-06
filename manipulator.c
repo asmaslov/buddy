@@ -57,7 +57,7 @@ static void processCommands()
     if(abs(manipulator->joints[i].reqSpeed) > manipulator->joints[i].maxSpeed)
     {
       manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * manipulator->joints[i].maxSpeed;
-    }              
+    }
   }
   // Process instruction if any for manipulator movement
   for(int k = 0; k < commandVault->requests.totalInstructions; k++)
@@ -245,23 +245,9 @@ static void processCommands()
           }     
         }            
       break;
-    }
-  }
-  // TODO: Make intelligent cleaner instead of this stupid one
-  bit cleanInProgress = TRUE;
-  while(cleanInProgress)
-  {
-    cleanInProgress = FALSE;
-    for(int k = 0; k < commandVault->requests.totalInstructions; k++)
-    {
-      if((getInstruction(k)->condition == INSTRUCTION_STATUS_DONE) ||
-         (getInstruction(k)->condition == INSTRUCTION_STATUS_ERROR) ||
-         (getInstruction(k)->condition == INSTRUCTION_STATUS_BREAK))
-      {
-        removeInstruction(k);            
-        cleanInProgress = TRUE;
-        break;
-      }
+      case INSTRUCTION_REQUEST:
+      
+      break;
     }
   }
 }
@@ -421,7 +407,7 @@ static void manipulator_handler(void)
          manipulator->joints[JOINT_Y].sensZeroPos = ((commandVault->status.stat12 & (1 << 6)) == 0) ? TRUE : FALSE;
          manipulator->joints[JOINT_ZL].sensZeroPos = ((commandVault->status.stat34 & (1 << 6)) == 0) ? TRUE : FALSE;
          manipulator->joints[JOINT_ZR].sensZeroPos = ((commandVault->status.stat34 & (1 << 7)) == 0) ? TRUE : FALSE;
-         commandVault->status.ready = allJointsConnected;
+         commandVault->status.ok = allJointsConnected;
          commandVault_unlock();
         }
         allJointsConnected = TRUE;

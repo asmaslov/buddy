@@ -101,10 +101,12 @@ static void checkPacket()
           }          
           if(addInstruction(&newIns))
           {            
+            commandVault->status.busy = FALSE;
             TRACE_DEBUG("New instruction 0x%02X in packet number %d\n\r", newIns.code, newIns.idx);
           }
           else
           {
+            commandVault->status.busy = TRUE;
             TRACE_DEBUG("Manipulator busy\n\r");
           }
           instructionLen = 0;   

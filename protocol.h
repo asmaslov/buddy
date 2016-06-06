@@ -174,6 +174,7 @@ typedef union {
       unsigned char status;
       struct {
         unsigned char ok : 1;
+        unsigned char busy : 1;
         // TODO:
         // Fill status packet bits
       };

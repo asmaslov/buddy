@@ -248,7 +248,8 @@ void commander_replyAuto(unsigned short idx)
   // Fill status packet bits
   reply.type = REPLY_PACKET_TYPE_AUTOREPLY;
   reply.idx = commandVault->lastPacketIdx;
-  reply.ok = commandVault->status.ready;
+  reply.ok = commandVault->status.ok;
+  reply.busy = commandVault->status.busy;
   reply.crc = 0;
   comport_uputchar(reply.unit);
   comport_uputchar(reply.type);
@@ -274,7 +275,8 @@ void commander_replyStatus(Instruction *ins)
   // Fill status packet bits
   reply.type = REPLY_PACKET_TYPE_STATUS;
   reply.idx = ins->idx;
-  reply.ok = commandVault->status.ready;
+  reply.ok = commandVault->status.ok;
+  reply.busy = commandVault->status.busy;
   reply.special = ins->condition;
   reply.crc = 0;
   comport_uputchar(reply.unit);
@@ -300,7 +302,8 @@ void commander_replyMessage(unsigned short idx)
   // Fill status packet bits
   reply.type = REPLY_PACKET_TYPE_STATUS;
   reply.idx = idx;
-  reply.ok = commandVault->status.ready;
+  reply.ok = commandVault->status.ok;
+  reply.busy = commandVault->status.busy;
   reply.special = commandVault->status.messageLen;
   reply.crc = 0;
   comport_uputchar(reply.unit);

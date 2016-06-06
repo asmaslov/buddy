@@ -54,7 +54,8 @@ typedef struct _Outputs {
 } Outputs;
 
 typedef struct _Status {
-  bit ready;
+  bit ok;
+  bit busy;
   unsigned char messageLen;
   unsigned char message[MESSAGE_MAX_LEN];
   unsigned char stat12;
