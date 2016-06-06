@@ -51,6 +51,10 @@ void commander_start(void);
 
 void commander_stop(void);
 
-void commander_reply(unsigned char type);
+void commander_replyAuto(unsigned short idx);
+
+void commander_replyStatus(Instruction *ins);
+
+void commander_replyMessage(unsigned short idx);
 
 #endif //#ifndef COMMANDER_H

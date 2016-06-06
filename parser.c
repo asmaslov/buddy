@@ -15,7 +15,6 @@ static void checkPacket()
   unsigned short checkCRC = 0;
   bit packetGood = FALSE;
   commandVault_lock();
-  
   switch (parser->packet.type)
   {
     case CONTROL_PACKET_TYPE_MANUAL:
@@ -92,26 +91,23 @@ static void checkPacket()
       case CONTROL_PACKET_TYPE_INSTRUCTION:
         if(instructionLen != 0)
         {
-          if(instruction[0] == INSTRUCTION_STOP_INIT)
+          Instruction newIns;
+          newIns.condition = INSTRUCTION_STATUS_ACCEPTED;
+          newIns.idx = parser->packet.idx;
+          newIns.code = instruction[0];
+          for(int i = 0; i < instructionLen - 1; i++)
           {
-            commandVault->requests.stopAll = TRUE;
-          }
-          if(!commandVault->requests.newIns)
-          {
-            commandVault->requests.newIns = TRUE;
-            TRACE_DEBUG("New instruction\n\r");
-            commandVault->status.instructionDone = FALSE;
-            commandVault->requests.instruction = instruction[0];
-            for(int i = 0; i < instructionLen - 1; i++)
-            {
-              commandVault->requests.parameters[i] = instruction[i + 1];
-            }
+            newIns.parameters[i] = instruction[i + 1];
+          }          
+          if(addInstruction(&newIns))
+          {            
+            TRACE_DEBUG("New instruction 0x%2X in packet number %d\n\r", newIns.code, newIns.idx);
           }
           else
           {
             TRACE_DEBUG("Manipulator busy\n\r");
           }
-          instructionLen = 0;          
+          instructionLen = 0;   
         }
       break;
     }

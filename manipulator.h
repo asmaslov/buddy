@@ -24,7 +24,7 @@
 #define SPEED_CALIBRATE_MULTIPLIED -100
 
 #define SPEED_MIN 1
-#define SPEED_TEST 10
+#define SPEED_GAP 3
 #define SPEED_MAX 100
 #define ACCELERATION 8
 #define DECELERATION_DIVIDER 4
@@ -32,9 +32,6 @@
 #define HALF_DEAD_ZONE 5
 
 #define STEP_DIVIDER 16
-
-#define CONTROL_SPEED 0
-#define CONTROL_POS   1
 
 typedef struct {
   bit moving;
@@ -65,7 +62,6 @@ typedef struct {
   Joint joints[TOTAL_JOINTS];
   bit globalMotorsTickersEnabled;
   unsigned int globalSpeedMultiplier;
-  unsigned char control;
   bit calibrated;
   unsigned int realx;
   unsigned int realy;
