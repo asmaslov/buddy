@@ -2,10 +2,56 @@
 #include "bits.h"
 
 #include "assert.h"
-#include "stdlib.h"
 #include "string.h"
 
 static CommandVault *commandVault;
+
+typedef struct _InstructionsMemory {
+  Instruction block;
+  bit busy;
+} InstructionsMemory;
+
+static InstructionsMemory instructionsMemory[INSTRUCTIONS_MEMORY_SLOTS];
+
+static void cleanInstructionsMemory(void)
+{
+  for(int i = 0; i < INSTRUCTIONS_MEMORY_SLOTS; i++)
+  {
+    instructionsMemory[i].busy = FALSE;
+  }
+}
+
+static Instruction *allocateInstructionMemory(void)
+{
+  int i = 0;
+  while((instructionsMemory[i].busy == TRUE) &&
+        (i < INSTRUCTIONS_MEMORY_SLOTS))
+  {
+    i++;
+  }
+  if(i == INSTRUCTIONS_MEMORY_SLOTS)
+  {
+    return NULL;
+  }
+  instructionsMemory[i].busy = TRUE;
+  return &instructionsMemory[i].block;
+}
+
+static bit freeInstructionMemory(Instruction *block)
+{
+  int i = 0;
+  while((&instructionsMemory[i].block == block) &&
+        (i < INSTRUCTIONS_MEMORY_SLOTS))
+  {
+    i++;
+  }
+  if(i == INSTRUCTIONS_MEMORY_SLOTS)
+  {
+    return FALSE;
+  }
+  instructionsMemory[i].busy = FALSE;
+  return TRUE;
+}
 
 void commandVault_init(CommandVault *cv)
 {
@@ -14,6 +60,7 @@ void commandVault_init(CommandVault *cv)
   commandVault->key = 0;
   
   commandVault->requests.totalInstructions = 0;
+  cleanInstructionsMemory();
   
   commandVault->values.speedX = 0;
   commandVault->values.speedY = 0;
@@ -33,6 +80,7 @@ void commandVault_init(CommandVault *cv)
   commandVault->outputs.endir34 = 0;
   
   commandVault->status.ready = FALSE;
+
 }
 
 void commandVault_lock(void)
@@ -57,7 +105,8 @@ int commandVault_locked(void)
 bit addInstruction(Instruction *ins)
 {
   SANITY_CHECK(ins);
-  Instruction *tmp = (Instruction*)malloc(sizeof(Instruction));
+  Instruction *tmp = allocateInstructionMemory();
+  SANITY_CHECK(tmp);
   memcpy(tmp, ins, sizeof(Instruction));
   tmp->next = commandVault->requests.instructions;
   commandVault->requests.instructions = tmp;
@@ -79,7 +128,7 @@ bit removeInstruction(int pos)
   if(pos == 0)
   {
     commandVault->requests.instructions = head->next;
-    free(head);
+    freeInstructionMemory(head);
     commandVault->requests.totalInstructions--;
     return TRUE;
   }
@@ -89,7 +138,7 @@ bit removeInstruction(int pos)
     if(k == pos)
     {
       prev->next = head->next;
-      free(head);
+      freeInstructionMemory(head);
       commandVault->requests.totalInstructions--;
       return TRUE;
     }
@@ -113,7 +162,7 @@ bit removeInstructionByIdx(unsigned short idx)
     if(head->idx == idx)
     {
       commandVault->requests.instructions = NULL;
-      free(head);
+      freeInstructionMemory(head);
       commandVault->requests.totalInstructions--;
       return TRUE;
     }
@@ -124,7 +173,7 @@ bit removeInstructionByIdx(unsigned short idx)
     if(head->idx == idx)
     {
       prev->next = head->next;
-      free(head);
+      freeInstructionMemory(head);
       commandVault->requests.totalInstructions--;
       return TRUE;
     }

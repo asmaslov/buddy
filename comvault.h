@@ -7,6 +7,8 @@
 // TODO:
 // Rename further structures contents according to real functionality
 
+#define INSTRUCTIONS_MEMORY_SLOTS 16
+
 typedef struct {
   bit enabled;
   unsigned long tick;

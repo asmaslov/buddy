@@ -101,7 +101,7 @@ static void checkPacket()
           }          
           if(addInstruction(&newIns))
           {            
-            TRACE_DEBUG("New instruction 0x%2X in packet number %d\n\r", newIns.code, newIns.idx);
+            TRACE_DEBUG("New instruction 0x%02X in packet number %d\n\r", newIns.code, newIns.idx);
           }
           else
           {

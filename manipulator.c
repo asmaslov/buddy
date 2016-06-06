@@ -84,11 +84,7 @@ static void processCommands()
           allInPlace = TRUE;
           for(int i = 0; i < TOTAL_JOINTS; i++)
           {
-            if(abs(manipulator->joints[i].realPos - manipulator->joints[i].reqPos) < HALF_DEAD_ZONE)
-            {
-              manipulator->joints[i].reqSpeed = 0;
-            }
-            else
+            if(abs(manipulator->joints[i].realSpeed) != 0)
             {
               allInPlace = FALSE;
             }
@@ -105,10 +101,15 @@ static void processCommands()
         {
           getInstruction(k)->condition = INSTRUCTION_STATUS_WORKING;
           manipulator->calibrated = FALSE;
+        }
+        if(getInstruction(k)->condition == INSTRUCTION_STATUS_WORKING)
+        {
+          allInPlace = TRUE;
           for(int i = 0; i < TOTAL_JOINTS; i++)
           {
             if(!manipulator->joints[i].sensZeroPos)
             {
+              allInPlace = FALSE;
               manipulator->joints[i].reqSpeed = SPEED_CALIBRATE_MULTIPLIED;
             }
             else
@@ -116,14 +117,6 @@ static void processCommands()
               manipulator->joints[i].reqSpeed = 0;
               manipulator->joints[i].realPos = 0;
             }
-          }
-        }
-        if(getInstruction(k)->condition == INSTRUCTION_STATUS_WORKING)
-        {
-          allInPlace = TRUE;
-          for(int i = 0; i < TOTAL_JOINTS; i++)
-          {
-            allInPlace &= manipulator->joints[i].sensZeroPos;
           }
           if(allInPlace)
           {
@@ -495,6 +488,10 @@ static void manipulator_handler(void)
         }
         if(commandVault->leftFeedbacks > 0)
         {
+          if(!mathTimer.enabled)
+          {
+            mathTimer.enabled = TRUE;
+          }
           commander_replyAuto(commandVault->lastPacketIdx);
           commandVault->leftFeedbacks--;
         }
@@ -524,7 +521,10 @@ static void manipulator_handler(void)
           }
         }
         processCommands();
-        regulateSpeeds();
+        if(manipulator->calibrated)
+        {
+          regulateSpeeds();
+        }
         setTickersAndDirections();
       }
     }
@@ -651,7 +651,7 @@ void manipulator_unfreeze(void)
   commandVault->outputs.endir34 |= (1 << 2);
   commandVault_unlock();
   manipulator->globalMotorsTickersEnabled = TRUE;
-  mathTimer.enabled = TRUE;
+  //mathTimer.enabled = TRUE;
 }
 
 void manipulator_freeze(void)
@@ -663,5 +663,5 @@ void manipulator_freeze(void)
   commandVault->outputs.endir34 &=~(1 << 2);
   commandVault_unlock();  
   manipulator->globalMotorsTickersEnabled = FALSE;
-  mathTimer.enabled = FALSE;
+  //mathTimer.enabled = FALSE;
 }

@@ -254,11 +254,11 @@ void commander_replyAuto(unsigned short idx)
   comport_uputchar(reply.type);
   comport_uputchar(reply.idxH);
   comport_uputchar(reply.idxL);
-  for(int i = REPLY_PACKET_PART_START; i < REPLY_PACKET_PART_STATUS; i++)
+  for(int i = REPLY_PACKET_PART_START; i <= REPLY_PACKET_PART_IDX_L; i++)
   {
     reply.crc += reply.bytes[i];
   }
-  for(int i = REPLY_PACKET_PART_STATUS; i < REPLY_PACKET_PART_CRC_H; i++)
+  for(int i = REPLY_PACKET_PART_STATUS; i <= REPLY_PACKET_PART_SPECIAL; i++)
   {
     comport_uputchar(reply.bytes[i]);
     reply.crc += reply.bytes[i];
