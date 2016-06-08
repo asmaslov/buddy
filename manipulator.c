@@ -60,14 +60,15 @@ static void processCommands()
     }
   }
   // Process instruction if any for manipulator movement
-  for(int k = 0; k < commandVault->requests.totalInstructions; k++)
+  for(int current = 0; current < commandVault->requests.totalInstructions; current++)
   {
-    switch(getInstruction(k)->code)
+    Instruction *currentInstruction = getInstruction(current);
+    switch(currentInstruction->code)
     {
       case INSTRUCTION_STOP_INIT:
-        if(getInstruction(k)->condition == INSTRUCTION_STATUS_ACCEPTED)
+        if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
         {
-          getInstruction(k)->condition = INSTRUCTION_STATUS_WORKING;
+          currentInstruction->condition = INSTRUCTION_STATUS_WORKING;
           if(!manipulator->globalMotorsTickersEnabled)
           {
             manipulator_unfreeze();
@@ -79,7 +80,7 @@ static void processCommands()
           }
           // TODO: Break all other manipulator instructions
         }
-        if(getInstruction(k)->condition == INSTRUCTION_STATUS_WORKING)
+        if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
         {
           allInPlace = TRUE;
           for(int i = 0; i < TOTAL_JOINTS; i++)
@@ -91,18 +92,18 @@ static void processCommands()
           }
           if(allInPlace)
           {
-            getInstruction(k)->condition = INSTRUCTION_STATUS_DONE;
+            currentInstruction->condition = INSTRUCTION_STATUS_DONE;
             TRACE_DEBUG("Manipulator stop\n\r");
           } 
         }
       break;
       case INSTRUCTION_CALIBRATE:
-        if(getInstruction(k)->condition == INSTRUCTION_STATUS_ACCEPTED)
+        if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
         {
-          getInstruction(k)->condition = INSTRUCTION_STATUS_WORKING;
+          currentInstruction->condition = INSTRUCTION_STATUS_WORKING;
           manipulator->calibrated = FALSE;
         }
-        if(getInstruction(k)->condition == INSTRUCTION_STATUS_WORKING)
+        if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
         {
           allInPlace = TRUE;
           for(int i = 0; i < TOTAL_JOINTS; i++)
@@ -121,7 +122,7 @@ static void processCommands()
           if(allInPlace)
           {
             manipulator->calibrated = TRUE;
-            getInstruction(k)->condition = INSTRUCTION_STATUS_DONE;
+            currentInstruction->condition = INSTRUCTION_STATUS_DONE;
             TRACE_DEBUG("Manipulator calibrated\n\r");
             Instruction newIns;
             newIns.condition = INSTRUCTION_STATUS_ACCEPTED;
@@ -145,86 +146,86 @@ static void processCommands()
         }
       break;
       case INSTRUCTION_GOTO:
-        if(getInstruction(k)->condition == INSTRUCTION_STATUS_ACCEPTED)
+        if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
         {
           if(!manipulator->calibrated)
           {
-            getInstruction(k)->condition = INSTRUCTION_STATUS_ERROR;
+            currentInstruction->condition = INSTRUCTION_STATUS_ERROR;
             TRACE_DEBUG("Manipulator not calibrated\n\r");
           }
           else
           {
-            getInstruction(k)->condition = INSTRUCTION_STATUS_WORKING;
-            switch (getInstruction(k)->parameters[0])
+            currentInstruction->condition = INSTRUCTION_STATUS_WORKING;
+            switch (currentInstruction->parameters[0])
             {
               case JOINT_X:
-                manipulator->joints[JOINT_X].reqPosL = getInstruction(k)->parameters[1];
-                manipulator->joints[JOINT_X].reqPosH = getInstruction(k)->parameters[2];
-                manipulator->joints[JOINT_X].topSpeed = getInstruction(k)->parameters[3];
+                manipulator->joints[JOINT_X].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_X].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_X].topSpeed = currentInstruction->parameters[3];
               break;
               case JOINT_Y:
-                manipulator->joints[JOINT_Y].reqPosL = getInstruction(k)->parameters[1];
-                manipulator->joints[JOINT_Y].reqPosH = getInstruction(k)->parameters[2];
-                manipulator->joints[JOINT_Y].topSpeed = getInstruction(k)->parameters[3];
+                manipulator->joints[JOINT_Y].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_Y].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_Y].topSpeed = currentInstruction->parameters[3];
               break;
               case JOINT_ZL:
-                manipulator->joints[JOINT_ZL].reqPosL = getInstruction(k)->parameters[1];
-                manipulator->joints[JOINT_ZL].reqPosH = getInstruction(k)->parameters[2];
-                manipulator->joints[JOINT_ZL].topSpeed = getInstruction(k)->parameters[3];
+                manipulator->joints[JOINT_ZL].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_ZL].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_ZL].topSpeed = currentInstruction->parameters[3];
               break;
               case JOINT_ZR:
-                manipulator->joints[JOINT_ZR].reqPosL = getInstruction(k)->parameters[1];
-                manipulator->joints[JOINT_ZR].reqPosH = getInstruction(k)->parameters[2];
-                manipulator->joints[JOINT_ZR].topSpeed = getInstruction(k)->parameters[3];
+                manipulator->joints[JOINT_ZR].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_ZR].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_ZR].topSpeed = currentInstruction->parameters[3];
               break;
               case JOINT_XY:
-                manipulator->joints[JOINT_X].reqPosL = getInstruction(k)->parameters[1];
-                manipulator->joints[JOINT_X].reqPosH = getInstruction(k)->parameters[2];
-                manipulator->joints[JOINT_Y].reqPosL = getInstruction(k)->parameters[3];
-                manipulator->joints[JOINT_Y].reqPosH = getInstruction(k)->parameters[4];
-                manipulator->joints[JOINT_X].topSpeed = getInstruction(k)->parameters[5];
-                manipulator->joints[JOINT_Y].topSpeed = getInstruction(k)->parameters[6];
+                manipulator->joints[JOINT_X].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_X].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_Y].reqPosL = currentInstruction->parameters[3];
+                manipulator->joints[JOINT_Y].reqPosH = currentInstruction->parameters[4];
+                manipulator->joints[JOINT_X].topSpeed = currentInstruction->parameters[5];
+                manipulator->joints[JOINT_Y].topSpeed = currentInstruction->parameters[6];
               break;
               case JOINT_XYZL:
-                manipulator->joints[JOINT_X].reqPosL = getInstruction(k)->parameters[1];
-                manipulator->joints[JOINT_X].reqPosH = getInstruction(k)->parameters[2];
-                manipulator->joints[JOINT_Y].reqPosL = getInstruction(k)->parameters[3];
-                manipulator->joints[JOINT_Y].reqPosH = getInstruction(k)->parameters[4];
-                manipulator->joints[JOINT_ZL].reqPosL = getInstruction(k)->parameters[5];
-                manipulator->joints[JOINT_ZL].reqPosH = getInstruction(k)->parameters[6];
-                manipulator->joints[JOINT_X].topSpeed = getInstruction(k)->parameters[7];
-                manipulator->joints[JOINT_Y].topSpeed = getInstruction(k)->parameters[8];
-                manipulator->joints[JOINT_ZL].topSpeed = getInstruction(k)->parameters[9];
+                manipulator->joints[JOINT_X].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_X].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_Y].reqPosL = currentInstruction->parameters[3];
+                manipulator->joints[JOINT_Y].reqPosH = currentInstruction->parameters[4];
+                manipulator->joints[JOINT_ZL].reqPosL = currentInstruction->parameters[5];
+                manipulator->joints[JOINT_ZL].reqPosH = currentInstruction->parameters[6];
+                manipulator->joints[JOINT_X].topSpeed = currentInstruction->parameters[7];
+                manipulator->joints[JOINT_Y].topSpeed = currentInstruction->parameters[8];
+                manipulator->joints[JOINT_ZL].topSpeed = currentInstruction->parameters[9];
               break;
               case JOINT_XYZR:
-                manipulator->joints[JOINT_X].reqPosL = getInstruction(k)->parameters[1];
-                manipulator->joints[JOINT_X].reqPosH = getInstruction(k)->parameters[2];
-                manipulator->joints[JOINT_Y].reqPosL = getInstruction(k)->parameters[3];
-                manipulator->joints[JOINT_Y].reqPosH = getInstruction(k)->parameters[4];
-                manipulator->joints[JOINT_ZR].reqPosL = getInstruction(k)->parameters[5];
-                manipulator->joints[JOINT_ZR].reqPosH = getInstruction(k)->parameters[6];
-                manipulator->joints[JOINT_X].topSpeed = getInstruction(k)->parameters[7];
-                manipulator->joints[JOINT_Y].topSpeed = getInstruction(k)->parameters[8];
-                manipulator->joints[JOINT_ZR].topSpeed = getInstruction(k)->parameters[9];
+                manipulator->joints[JOINT_X].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_X].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_Y].reqPosL = currentInstruction->parameters[3];
+                manipulator->joints[JOINT_Y].reqPosH = currentInstruction->parameters[4];
+                manipulator->joints[JOINT_ZR].reqPosL = currentInstruction->parameters[5];
+                manipulator->joints[JOINT_ZR].reqPosH = currentInstruction->parameters[6];
+                manipulator->joints[JOINT_X].topSpeed = currentInstruction->parameters[7];
+                manipulator->joints[JOINT_Y].topSpeed = currentInstruction->parameters[8];
+                manipulator->joints[JOINT_ZR].topSpeed = currentInstruction->parameters[9];
               break;
               case JOINT_XYZLZR:
-                manipulator->joints[JOINT_X].reqPosL = getInstruction(k)->parameters[1];
-                manipulator->joints[JOINT_X].reqPosH = getInstruction(k)->parameters[2];
-                manipulator->joints[JOINT_Y].reqPosL = getInstruction(k)->parameters[3];
-                manipulator->joints[JOINT_Y].reqPosH = getInstruction(k)->parameters[4];
-                manipulator->joints[JOINT_ZL].reqPosL = getInstruction(k)->parameters[5];
-                manipulator->joints[JOINT_ZL].reqPosH = getInstruction(k)->parameters[6];
-                manipulator->joints[JOINT_ZR].reqPosL = getInstruction(k)->parameters[7];
-                manipulator->joints[JOINT_ZR].reqPosH = getInstruction(k)->parameters[8];
-                manipulator->joints[JOINT_X].topSpeed = getInstruction(k)->parameters[9];
-                manipulator->joints[JOINT_Y].topSpeed = getInstruction(k)->parameters[10];
-                manipulator->joints[JOINT_ZL].topSpeed = getInstruction(k)->parameters[11];
-                manipulator->joints[JOINT_ZR].topSpeed = getInstruction(k)->parameters[12];
+                manipulator->joints[JOINT_X].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_X].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_Y].reqPosL = currentInstruction->parameters[3];
+                manipulator->joints[JOINT_Y].reqPosH = currentInstruction->parameters[4];
+                manipulator->joints[JOINT_ZL].reqPosL = currentInstruction->parameters[5];
+                manipulator->joints[JOINT_ZL].reqPosH = currentInstruction->parameters[6];
+                manipulator->joints[JOINT_ZR].reqPosL = currentInstruction->parameters[7];
+                manipulator->joints[JOINT_ZR].reqPosH = currentInstruction->parameters[8];
+                manipulator->joints[JOINT_X].topSpeed = currentInstruction->parameters[9];
+                manipulator->joints[JOINT_Y].topSpeed = currentInstruction->parameters[10];
+                manipulator->joints[JOINT_ZL].topSpeed = currentInstruction->parameters[11];
+                manipulator->joints[JOINT_ZR].topSpeed = currentInstruction->parameters[12];
               break;
             }
           }
         }
-        if(getInstruction(k)->condition == INSTRUCTION_STATUS_WORKING)
+        if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
         {
           allInPlace = TRUE;
           for(int i = 0; i < TOTAL_JOINTS; i++)
@@ -240,13 +241,30 @@ static void processCommands()
           }
           if(allInPlace)
           {
-            getInstruction(k)->condition = INSTRUCTION_STATUS_DONE;
+            currentInstruction->condition = INSTRUCTION_STATUS_DONE;
             TRACE_DEBUG("Manipulator movement instruction complete\n\r");
           }     
         }            
       break;
       case INSTRUCTION_REQUEST:
-      
+        if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
+        {
+          currentInstruction->condition = INSTRUCTION_STATUS_DONE;
+          Instruction *wantedInstruction = getInstructionByIdx(currentInstruction->parameters[0]);
+          if(wantedInstruction)
+          {
+            commander_replyStatus(wantedInstruction);
+            removeInstruction(current);
+            if(wantedInstruction->condition == INSTRUCTION_STATUS_DONE)
+            {
+              removeInstructionByIdx(currentInstruction->parameters[0]);
+            }
+          }
+          else
+          {
+            TRACE_DEBUG("Instruction number %d does not exist\n\r", currentInstruction->parameters[0]);
+          }
+        }
       break;
     }
   }

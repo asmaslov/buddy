@@ -270,7 +270,7 @@ void commander_replyAuto(unsigned short idx)
 
 void commander_replyStatus(Instruction *ins)
 {
-    SANITY_CHECK(ins);
+  SANITY_CHECK(ins);
   // TODO:
   // Fill status packet bits
   reply.type = REPLY_PACKET_TYPE_STATUS;
