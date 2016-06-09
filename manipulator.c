@@ -664,7 +664,6 @@ void manipulator_unfreeze(void)
   commandVault->outputs.endir34 |= (1 << 2);
   commandVault_unlock();
   manipulator->globalMotorsTickersEnabled = TRUE;
-  //mathTimer.enabled = TRUE;
 }
 
 void manipulator_freeze(void)
@@ -676,5 +675,4 @@ void manipulator_freeze(void)
   commandVault->outputs.endir34 &=~(1 << 2);
   commandVault_unlock();  
   manipulator->globalMotorsTickersEnabled = FALSE;
-  //mathTimer.enabled = FALSE;
 }

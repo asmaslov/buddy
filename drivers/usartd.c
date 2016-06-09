@@ -106,6 +106,14 @@ void comport_uputchar(char c)
   }
 }
 
+void comport_uputs(char *str, int size)
+{
+  for(int i = 0; i < size; i++)
+  {
+    comport_uputchar(*(str + i));
+  }
+}
+
 void comport_uprintf(char *str, ...)
 {
   unsigned int i = 0;
@@ -119,6 +127,20 @@ void comport_uprintf(char *str, ...)
   {
     comport_uputchar(buffer[i]);
     i++;
+  }
+}
+
+void comport_udmaputs(char *str, int size)
+{
+  SANITY_CHECK(comport);
+  switch(comport->port)
+  {
+    case USART0:
+      USART_WriteBuffer(AT91C_BASE_US0, str, size);
+    break;
+    case USART1:
+      USART_WriteBuffer(AT91C_BASE_US1, str, size);
+    break;
   }
 }
 

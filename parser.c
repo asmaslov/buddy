@@ -135,7 +135,7 @@ void parser_enable(Parser *p, CommandVault *cv)
   commandVault->lastPacketIdx = 0;
 }
 
-void parser_work(unsigned char *buf, int size)
+void parser_work(char *buf, int size)
 {
   SANITY_CHECK(parser);
   SANITY_CHECK(commandVault);  
