@@ -83,8 +83,6 @@ int commandVault_locked(void);
 
 bit addInstruction(Instruction *ins);
 
-bit removeInstruction(int pos);
-
 bit removeInstructionByIdx(unsigned short idx);
 
 Instruction *getInstruction(int pos);

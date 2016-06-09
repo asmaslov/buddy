@@ -18,6 +18,7 @@ static void comport_handler0(void)
   status = AT91C_BASE_US0->US_CSR;
   if((status & AT91C_US_ENDRX) == AT91C_US_ENDRX)
   {
+    TRACE_DEBUG("USART0 read buffer full\n\r");
     if(comport->parser)
     {
       comport->parser(comport->readBuffer, USART_BUFFER_SIZE);
@@ -70,8 +71,8 @@ void comport_configure(unsigned char portnum,
       USART_SetTransmitterEnabled(AT91C_BASE_US0, TRUE);
       USART_SetReceiverEnabled(AT91C_BASE_US0, TRUE);
       USART_ReadBuffer(AT91C_BASE_US0, comport->readBuffer, USART_BUFFER_SIZE);
-      ipt = AT91C_US_ENDRX
-          | AT91C_US_RXBUFF;
+      ipt = AT91C_US_ENDRX   // One of the buffers is full
+          | AT91C_US_RXBUFF; // Both buffers are full
       USART_EnableIt(AT91C_BASE_US0, ipt);
       TRACE_DEBUG("USART0 enabled\n\r");
     break;
@@ -155,4 +156,20 @@ unsigned char comport_ugetchar(void)
     break;
   }
   return 0;
+}
+
+void comport_uread(void)
+{
+  SANITY_CHECK(comport);
+  switch(comport->port)
+  {
+    case USART0:
+      USART_ClearReadBuffers(AT91C_BASE_US0);
+      USART_ReadBuffer(AT91C_BASE_US0, comport->readBuffer, USART_BUFFER_SIZE);
+    break;
+    case USART1:
+      USART_ClearReadBuffers(AT91C_BASE_US1);
+      USART_ReadBuffer(AT91C_BASE_US1, comport->readBuffer, USART_BUFFER_SIZE);
+    break;
+  }
 }

@@ -40,7 +40,7 @@ static Instruction *allocateInstructionMemory(void)
 static bit freeInstructionMemory(Instruction *block)
 {
   int i = 0;
-  while((&instructionsMemory[i].block == block) &&
+  while((&instructionsMemory[i].block != block) &&
         (i < INSTRUCTIONS_MEMORY_SLOTS))
   {
     i++;
@@ -142,37 +142,6 @@ bit addInstruction(Instruction *ins)
   return FALSE;
 }
 
-bit removeInstruction(int pos)
-{
-  SANITY_CHECK(commandVault->requests.instructions);
-  ASSERT((pos < commandVault->requests.totalInstructions), "Instruction index out of range");
-  Instruction *head = commandVault->requests.instructions;
-  Instruction *prev;
-  int k = 0;
-  if(pos == 0)
-  {
-    commandVault->requests.instructions = head->next;
-    freeInstructionMemory(head);
-    commandVault->requests.totalInstructions--;
-    return TRUE;
-  }
-  do
-  {
-    prev = head;
-    if(k == pos)
-    {
-      prev->next = head->next;
-      freeInstructionMemory(head);
-      commandVault->requests.totalInstructions--;
-      return TRUE;
-    }
-    head = head->next;
-    k++;
-  }
-  while(head);
-  return FALSE;
-}
-
 bit removeInstructionByIdx(unsigned short idx)
 {
   Instruction *head = commandVault->requests.instructions;
@@ -191,9 +160,17 @@ bit removeInstructionByIdx(unsigned short idx)
       return TRUE;
     }
   }
+  if(head->idx == idx)
+  {
+    commandVault->requests.instructions = head->next;
+    freeInstructionMemory(head);
+    commandVault->requests.totalInstructions--;
+    return TRUE;
+  }
   do
   {
     prev = head;
+    head = head->next;
     if(head->idx == idx)
     {
       prev->next = head->next;
@@ -201,9 +178,8 @@ bit removeInstructionByIdx(unsigned short idx)
       commandVault->requests.totalInstructions--;
       return TRUE;
     }
-    head = head->next;
   }
-  while(head);
+  while(head->next);
   return FALSE;
 }
 

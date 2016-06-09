@@ -184,3 +184,13 @@ void USART_SetIrdaFilter(AT91S_USART *usart,
   SANITY_CHECK(usart);
   usart->US_IF = filter;
 }
+
+void USART_ClearReadBuffers(AT91S_USART *usart)
+{
+  unsigned int mask = usart->US_IMR;
+  usart->US_IDR = AT91C_US_ALLIR;
+  usart->US_PTCR = AT91C_PDC_RXTDIS;
+  usart->US_RCR = 0;
+  usart->US_RNCR = 0;
+  usart->US_IER = mask;
+}

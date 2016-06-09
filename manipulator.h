@@ -16,7 +16,7 @@
 #define CLOCK_MAX_FREQ_HZ 300000
 #define CLOCK_FREQ_HZ      10000
 #define MATH_FREQ_HZ         100
-#define PARSER_FREQ_HZ        10
+#define PARSER_FREQ_HZ        50
 
 #define I2C_MIN_PERIOD_US   1000
 #define I2C_PERIOD_US       5000

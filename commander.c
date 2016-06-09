@@ -214,7 +214,7 @@ void commander_nodsPowerUp(void)
   if(commander->totalNods > 0)
   {
     PIO_Clear(&NodPower_pin);
-    delayMs(200);
+    delayMs(10);
   }
   else
   {
@@ -226,7 +226,7 @@ void commander_nodsPowerDown(void)
 {
   SANITY_CHECK(commander);
   PIO_Set(&NodPower_pin);
-  delayMs(200);
+  delayMs(10);
   commander->currentNodIdx = 0;
 }
 

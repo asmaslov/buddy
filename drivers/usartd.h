@@ -58,4 +58,6 @@ void comport_udmaprintf(char *str, ...);
 
 unsigned char comport_ugetchar(void);
 
+void comport_uread(void);
+
 #endif //#ifndef USARTD_H

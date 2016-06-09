@@ -60,9 +60,9 @@ static void processCommands()
     }
   }
   // Process instruction if any for manipulator movement
-  for(int current = 0; current < commandVault->requests.totalInstructions; current++)
+  for(int random = 0; random < commandVault->requests.totalInstructions; random++)
   {
-    Instruction *currentInstruction = getInstruction(current);
+    Instruction *currentInstruction = getInstruction(random);
     switch(currentInstruction->code)
     {
       case INSTRUCTION_STOP_INIT:
@@ -243,8 +243,8 @@ static void processCommands()
           {
             currentInstruction->condition = INSTRUCTION_STATUS_DONE;
             TRACE_DEBUG("Manipulator movement instruction complete\n\r");
-          }     
-        }            
+          }
+        }
       break;
       case INSTRUCTION_REQUEST:
         if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
@@ -254,7 +254,6 @@ static void processCommands()
           if(wantedInstruction)
           {
             commander_replyStatus(wantedInstruction);
-            removeInstruction(current);
             if(wantedInstruction->condition == INSTRUCTION_STATUS_DONE)
             {
               removeInstructionByIdx(currentInstruction->parameters[0]);
@@ -264,6 +263,7 @@ static void processCommands()
           {
             TRACE_DEBUG("Instruction number %d does not exist\n\r", currentInstruction->parameters[0]);
           }
+          removeInstructionByIdx(currentInstruction->idx);
         }
       break;
     }
@@ -417,6 +417,7 @@ static void manipulator_handler(void)
       {
         commander->timer.mastertick = 0;
         // Commander timer interrupt
+        commander->timer.enabled = FALSE;
         commanderTicker();
         if(!commandVault_locked()) 
         {
@@ -433,6 +434,7 @@ static void manipulator_handler(void)
         {
           allJointsConnected &= commander->nods[i].connected;
         }
+        commander->timer.enabled = TRUE;
       }
     }
     if(manipulator->globalMotorsTickersEnabled && allJointsConnected)
@@ -448,6 +450,7 @@ static void manipulator_handler(void)
             {
               manipulator->joints[i].timer.mastertick = 0;
               // Motor timer interrupt
+              manipulator->joints[i].timer.enabled = FALSE;
               PIO_Invert(&Clocks_pins[i]);
               if(manipulator->joints[i].direction == FORWARD)
               {
@@ -471,6 +474,7 @@ static void manipulator_handler(void)
                   manipulator->joints[i].realPos++;
                 }
               }
+              manipulator->joints[i].timer.enabled = TRUE;
             }
           }
         }
@@ -486,10 +490,12 @@ static void manipulator_handler(void)
       {
         parser.timer.mastertick = 0;
         // Parser timer interrupt
+        parser.timer.enabled = FALSE;
         if(comport->parser)
         {
           comport->parser(comport->readBuffer, USART_BUFFER_SIZE);
         }
+        comport_uread();
         if(commandVault->leftFeedbacks > 0)
         {
           if(!mathTimer.enabled)
@@ -499,6 +505,7 @@ static void manipulator_handler(void)
           commander_replyAuto(commandVault->lastPacketIdx);
           commandVault->leftFeedbacks--;
         }
+        parser.timer.enabled = TRUE;
       }
     }
   }
@@ -511,6 +518,7 @@ static void manipulator_handler(void)
       {
         mathTimer.mastertick = 0;
         // Math timer interrupt
+        mathTimer.enabled = FALSE;
         for(int i = 0; i < TOTAL_JOINTS; i++)
         {
           manipulator->joints[i].realSpeed = (manipulator->joints[i].realPos - manipulator->joints[i].oldPos) * MATH_FREQ_HZ / STEP_DIVIDER;
@@ -530,6 +538,7 @@ static void manipulator_handler(void)
           regulateSpeeds();
         }
         setTickersAndDirections();
+        mathTimer.enabled = TRUE;
       }
     }
   }

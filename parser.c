@@ -54,7 +54,6 @@ static void checkPacket()
   }
   if(packetGood)
   {
-    TRACE_DEBUG("Packet number %d\n\r", commandVault->lastPacketIdx);
     switch (parser->packet.segment)
     {
       case SEGMENT_MAIN:
