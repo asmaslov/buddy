@@ -22,7 +22,7 @@
 #define PINS_USART1 PIN_USART1_RXD, PIN_USART1_TXD, PIN_USART1_SCK, PIN_USART1_RTS, PIN_USART1_CTS
 #define PINS_USART1_RXTX PIN_USART1_RXD, PIN_USART1_TXD
 
-#define USART_BUFFER_SIZE 20 // Maximun command length
+#define USART_BUFFER_SIZE 50 // Maximun command length
 #define USART_TIMEOUT 0
 
 static const Pin USART0_pins[] = {

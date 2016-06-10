@@ -15,7 +15,7 @@
 #define DEFAULT_MASTER_ADDRESS_LEN 1
 
 #define I2C_MAX_FREQ_HZ 100000
-#define I2C_FREQ_HZ      50000
+#define I2C_FREQ_HZ      90000
 
 #define I2C_MAX_ATTEMPT 50000
 
