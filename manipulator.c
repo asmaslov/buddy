@@ -254,10 +254,6 @@ static void processCommands()
           if(wantedInstruction)
           {
             commander_replyStatus(wantedInstruction);
-            if(wantedInstruction->condition == INSTRUCTION_STATUS_DONE)
-            {
-              removeInstructionByIdx(currentInstruction->parameters[0]);
-            }
           }
           else
           {

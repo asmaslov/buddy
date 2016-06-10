@@ -13,7 +13,7 @@ typedef struct _InstructionsMemory {
 
 static InstructionsMemory instructionsMemory[INSTRUCTIONS_MEMORY_SLOTS];
 
-static void cleanInstructionsMemory(void)
+static void cleanAllInstructionsMemory(void)
 {
   for(int i = 0; i < INSTRUCTIONS_MEMORY_SLOTS; i++)
   {
@@ -65,6 +65,7 @@ static bit cleanInstructionMemory(void)
     {
       instructionsMemory[i].busy = FALSE;
       unusedBlockFound = TRUE;
+      break;
     }
   }
   return unusedBlockFound;
@@ -77,7 +78,7 @@ void commandVault_init(CommandVault *cv)
   commandVault->key = 0;
   
   commandVault->requests.totalInstructions = 0;
-  cleanInstructionsMemory();
+  cleanAllInstructionsMemory();
   
   commandVault->values.speedX = 0;
   commandVault->values.speedY = 0;
