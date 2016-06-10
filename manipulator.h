@@ -15,8 +15,8 @@
 
 #define CLOCK_MAX_FREQ_HZ 300000
 #define CLOCK_FREQ_HZ      10000
-#define MATH_FREQ_HZ         100
-#define PARSER_FREQ_HZ        50
+#define MATH_FREQ_HZ         200
+#define PARSER_FREQ_HZ       100
 
 #define I2C_MIN_PERIOD_US   1000
 #define I2C_PERIOD_US       5000
@@ -61,6 +61,7 @@ typedef struct {
 typedef struct {
   Joint joints[TOTAL_JOINTS];
   bit globalMotorsTickersEnabled;
+  bit globalMathEnabled;
   unsigned int globalSpeedMultiplier;
   bit calibrated;
   unsigned int realx;
@@ -76,6 +77,10 @@ void manipulator_init(Manipulator *m,
                       Comport *cp);
 
 void manipulator_configure(CommanderTicker ct);
+
+void manipulator_startMathLogic(void);
+
+void manipulator_stopMathLogic(void);
 
 void manipulator_startParser(void);
 

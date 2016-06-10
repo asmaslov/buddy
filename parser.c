@@ -25,7 +25,7 @@ static void checkPacket()
       if(checkCRC == parser->packet.crc)
       {
         if((parser->packet.idx > commandVault->lastPacketIdx) ||
-           ((parser->packet.idx == 0) && (commandVault->lastPacketIdx == MAX_PACKET_INDEX)))
+           ((parser->packet.idx == 1) && (commandVault->lastPacketIdx == MAX_PACKET_INDEX)))
         {    
           commandVault->lastPacketIdx = parser->packet.idx;
           packetGood = TRUE;

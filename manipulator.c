@@ -66,6 +66,26 @@ static void processCommands()
     switch(currentInstruction->code)
     {
       case INSTRUCTION_STOP_INIT:
+        if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
+        {
+          allInPlace = TRUE;
+          for(int i = 0; i < TOTAL_JOINTS; i++)
+          {
+            if(abs(manipulator->joints[i].realSpeed) != 0)
+            {
+              allInPlace = FALSE;
+            }
+          }
+          if(allInPlace)
+          {
+            currentInstruction->condition = INSTRUCTION_STATUS_DONE;
+            if(!manipulator->calibrated)
+            {
+              removeInstructionByIdx(currentInstruction->idx);
+            }
+            TRACE_DEBUG("Manipulator stop\n\r");
+          } 
+        }
         if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
         {
           currentInstruction->condition = INSTRUCTION_STATUS_WORKING;
@@ -80,29 +100,8 @@ static void processCommands()
           }
           // TODO: Break all other manipulator instructions
         }
-        if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
-        {
-          allInPlace = TRUE;
-          for(int i = 0; i < TOTAL_JOINTS; i++)
-          {
-            if(abs(manipulator->joints[i].realSpeed) != 0)
-            {
-              allInPlace = FALSE;
-            }
-          }
-          if(allInPlace)
-          {
-            currentInstruction->condition = INSTRUCTION_STATUS_DONE;
-            TRACE_DEBUG("Manipulator stop\n\r");
-          } 
-        }
       break;
       case INSTRUCTION_CALIBRATE:
-        if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
-        {
-          currentInstruction->condition = INSTRUCTION_STATUS_WORKING;
-          manipulator->calibrated = FALSE;
-        }
         if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
         {
           allInPlace = TRUE;
@@ -144,8 +143,29 @@ static void processCommands()
             addInstruction(&newIns);
           }
         }
+        if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
+        {
+          currentInstruction->condition = INSTRUCTION_STATUS_WORKING;
+          manipulator->calibrated = FALSE;
+        }
       break;
       case INSTRUCTION_GOTO:
+        if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
+        {
+          allInPlace = TRUE;
+          for(int i = 0; i < TOTAL_JOINTS; i++)
+          {
+            if(manipulator->joints[i].reqSpeed != 0)
+            {
+              allInPlace = FALSE;
+            }
+          }
+          if(allInPlace)
+          {
+            currentInstruction->condition = INSTRUCTION_STATUS_DONE;
+            TRACE_DEBUG("Manipulator movement instruction complete\n\r");
+          }
+        }
         if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
         {
           if(!manipulator->calibrated)
@@ -225,26 +245,6 @@ static void processCommands()
             }
           }
         }
-        if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
-        {
-          allInPlace = TRUE;
-          for(int i = 0; i < TOTAL_JOINTS; i++)
-          {
-            if(abs(manipulator->joints[i].realPos - manipulator->joints[i].reqPos) < HALF_DEAD_ZONE)
-            {
-              manipulator->joints[i].reqSpeed = 0;
-            }
-            else
-            {
-              allInPlace = FALSE;
-            }
-          }
-          if(allInPlace)
-          {
-            currentInstruction->condition = INSTRUCTION_STATUS_DONE;
-            TRACE_DEBUG("Manipulator movement instruction complete\n\r");
-          }
-        }
       break;
       case INSTRUCTION_REQUEST:
         if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
@@ -267,13 +267,17 @@ static void processCommands()
         }
       break;
     }
+    if((currentInstruction->idx == 0) && (currentInstruction->condition == INSTRUCTION_STATUS_DONE))
+    {
+      removeInstructionByIdx(currentInstruction->idx);
+    }
   }
 }
 
 static void regulateSpeeds(void)
 {
   for(int i = 0; i < TOTAL_JOINTS; i++)
-  {                               
+  {
     if(manipulator->joints[i].topSpeed != 0)
     {
       manipulator->joints[i].limitTopSpeed = TRUE;
@@ -291,7 +295,7 @@ static void regulateSpeeds(void)
     // Dead zone sense and speed reference
     if(manipulator->joints[i].reqPos < manipulator->joints[i].realPos - HALF_DEAD_ZONE)
     {
-      if(manipulator->joints[i].limitTopSpeed)
+      if((manipulator->joints[i].limitTopSpeed) && (abs(manipulator->joints[i].reqSpeed) > manipulator->joints[i].topSpeed))
       {
         manipulator->joints[i].reqSpeed = -(manipulator->joints[i].topSpeed * manipulator->globalSpeedMultiplier);
       }
@@ -302,7 +306,7 @@ static void regulateSpeeds(void)
     }
     else if(manipulator->joints[i].reqPos > manipulator->joints[i].realPos + HALF_DEAD_ZONE)
     {
-      if(manipulator->joints[i].limitTopSpeed)
+      if(manipulator->joints[i].limitTopSpeed && (abs(manipulator->joints[i].reqSpeed) > manipulator->joints[i].topSpeed))
       {
         manipulator->joints[i].reqSpeed = manipulator->joints[i].topSpeed * manipulator->globalSpeedMultiplier;
       }
@@ -498,9 +502,9 @@ static void manipulator_handler(void)
         comport_uread();
         if(commandVault->leftFeedbacks > 0)
         {
-          if(!mathTimer.enabled)
+          if(!manipulator->globalMathEnabled)
           {
-            mathTimer.enabled = TRUE;
+            manipulator->globalMathEnabled = TRUE;
           }
           commander_replyAuto(commandVault->lastPacketIdx);
           commandVault->leftFeedbacks--;
@@ -509,7 +513,7 @@ static void manipulator_handler(void)
       }
     }
   }
-  if(mathTimer.enabled)
+  if(mathTimer.enabled && manipulator->globalMathEnabled)
   {
     if(++mathTimer.tick >= mathTimer.compare)
     {
@@ -586,6 +590,7 @@ void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv, Comport *c
   manipulator->realzl = 0;
   manipulator->busy = FALSE;
   manipulator->globalMotorsTickersEnabled = FALSE;
+  manipulator->globalMathEnabled = FALSE;
   mathTimer.enabled = FALSE;
   mathTimer.tick = 0;
   mathTimer.compare = 0;
@@ -645,6 +650,16 @@ void manipulator_configure(CommanderTicker ct)
   manipulator_configureJoints();
 }
 
+void manipulator_startMathLogic(void)
+{
+  mathTimer.enabled = TRUE;
+}
+
+void manipulator_stopMathLogic(void)
+{
+  mathTimer.enabled = FALSE;
+}
+
 void manipulator_startParser(void)
 {
   parser.timer.enabled = TRUE;
@@ -675,4 +690,5 @@ void manipulator_freeze(void)
   commandVault->outputs.endir34 &=~(1 << 2);
   commandVault_unlock();  
   manipulator->globalMotorsTickersEnabled = FALSE;
+  manipulator->globalMathEnabled = FALSE;
 }

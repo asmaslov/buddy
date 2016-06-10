@@ -130,6 +130,7 @@ int main(void)
   manipulator_configure(commanderTicker);
   commander_nodsPowerUp();
   commander_start();
+  manipulator_startMathLogic();
   manipulator_startParser();
   
   TRACE_DEBUG("Initialization complete\n\r");
