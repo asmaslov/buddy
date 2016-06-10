@@ -7,6 +7,8 @@
 // TODO:
 // Rename further structures contents according to real functionality
 
+#define INSTRUCTIONS_MEMORY_SLOTS 16
+
 typedef struct {
   bit enabled;
   unsigned long tick;
@@ -33,11 +35,17 @@ typedef struct _Holdkeys {
   bit buttonY;
 } Holdkeys;
 
-typedef struct _Requests {
-  bit newIns;
-  bit stopAll;
-  unsigned char instruction;
+typedef struct _Instruction {
+  unsigned short idx;
+  unsigned char code;
   unsigned char parameters[INSTRUCTION_MAX_LEN - 1];
+  unsigned char condition;
+  struct _Instruction *next;
+} Instruction;
+
+typedef struct _Requests {
+  Instruction *instructions;
+  int totalInstructions;
 } Requests;
 
 typedef struct _Outputs {
@@ -46,8 +54,8 @@ typedef struct _Outputs {
 } Outputs;
 
 typedef struct _Status {
-  bit ready;
-  bit instructionDone;
+  bit ok;
+  bit busy;
   unsigned char messageLen;
   unsigned char message[MESSAGE_MAX_LEN];
   unsigned char stat12;
@@ -72,5 +80,13 @@ void commandVault_lock(void);
 void commandVault_unlock(void);
 
 int commandVault_locked(void);
+
+bit addInstruction(Instruction *ins);
+
+bit removeInstructionByIdx(unsigned short idx);
+
+Instruction *getInstruction(int pos);
+
+Instruction *getInstructionByIdx(unsigned short idx);
 
 #endif //#ifndef COMVAULT_H

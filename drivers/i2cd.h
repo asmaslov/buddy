@@ -16,6 +16,7 @@
 
 #define I2C_MAX_FREQ_HZ 100000
 #define I2C_FREQ_HZ      90000
+
 #define I2C_MAX_ATTEMPT 50000
 
 #define TRANSFER_WRITE 0

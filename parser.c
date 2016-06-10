@@ -15,7 +15,6 @@ static void checkPacket()
   unsigned short checkCRC = 0;
   bit packetGood = FALSE;
   commandVault_lock();
-  
   switch (parser->packet.type)
   {
     case CONTROL_PACKET_TYPE_MANUAL:
@@ -26,7 +25,7 @@ static void checkPacket()
       if(checkCRC == parser->packet.crc)
       {
         if((parser->packet.idx > commandVault->lastPacketIdx) ||
-           ((parser->packet.idx == 0) && (commandVault->lastPacketIdx == MAX_PACKET_INDEX)))
+           ((parser->packet.idx == 1) && (commandVault->lastPacketIdx == MAX_PACKET_INDEX)))
         {    
           commandVault->lastPacketIdx = parser->packet.idx;
           packetGood = TRUE;
@@ -55,7 +54,6 @@ static void checkPacket()
   }
   if(packetGood)
   {
-    TRACE_DEBUG("Packet number %d\n\r", commandVault->lastPacketIdx);
     switch (parser->packet.segment)
     {
       case SEGMENT_MAIN:
@@ -92,26 +90,25 @@ static void checkPacket()
       case CONTROL_PACKET_TYPE_INSTRUCTION:
         if(instructionLen != 0)
         {
-          if(instruction[0] == INSTRUCTION_STOP_INIT)
+          Instruction newIns;
+          newIns.condition = INSTRUCTION_STATUS_ACCEPTED;
+          newIns.idx = parser->packet.idx;
+          newIns.code = instruction[0];
+          for(int i = 0; i < instructionLen - 1; i++)
           {
-            commandVault->requests.stopAll = TRUE;
-          }
-          if(!commandVault->requests.newIns)
-          {
-            commandVault->requests.newIns = TRUE;
-            TRACE_DEBUG("New instruction\n\r");
-            commandVault->status.instructionDone = FALSE;
-            commandVault->requests.instruction = instruction[0];
-            for(int i = 0; i < instructionLen - 1; i++)
-            {
-              commandVault->requests.parameters[i] = instruction[i + 1];
-            }
+            newIns.parameters[i] = instruction[i + 1];
+          }          
+          if(addInstruction(&newIns))
+          {            
+            commandVault->status.busy = FALSE;
+            TRACE_DEBUG("New instruction 0x%02X in packet number %d\n\r", newIns.code, newIns.idx);
           }
           else
           {
+            commandVault->status.busy = TRUE;
             TRACE_DEBUG("Manipulator busy\n\r");
           }
-          instructionLen = 0;          
+          instructionLen = 0;   
         }
       break;
     }
@@ -138,7 +135,7 @@ void parser_enable(Parser *p, CommandVault *cv)
   commandVault->lastPacketIdx = 0;
 }
 
-void parser_work(unsigned char *buf, int size)
+void parser_work(char *buf, int size)
 {
   SANITY_CHECK(parser);
   SANITY_CHECK(commandVault);  

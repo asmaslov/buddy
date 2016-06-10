@@ -114,13 +114,13 @@ int main(void)
   // ---
   
   // User hello
-  delayMs(100);
+  delayMs(10);
   LCD_init();
   delayUs(100);
   LCDSettings(); 
   delayUs(100);
   LCDWrite130x130bmp();
-  delayMs(500);
+  delayMs(50);
   // ---
 
   // Launch main logic modules, order is important
@@ -130,6 +130,7 @@ int main(void)
   manipulator_configure(commanderTicker);
   commander_nodsPowerUp();
   commander_start();
+  manipulator_startMathLogic();
   manipulator_startParser();
   
   TRACE_DEBUG("Initialization complete\n\r");

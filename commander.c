@@ -175,7 +175,6 @@ CommanderTicker commander_init(Commander *c, CommandVault *cv, Comport *cp)
   commander_createNod(ENDIR12_ADDRESS, 1, 1);
   commander_createNod(ENDIR34_ADDRESS, 1, 1);
   reply.unit = DEFAULT_PAD_ADDR;
-  reply.type = REPLY_PACKET_TYPE_STATUS;
   for(int i = REPLY_PACKET_PART_IDX_H; i < REPLY_PACKET_LEN; i++)
   {
     reply.bytes[i] = 0;
@@ -215,7 +214,7 @@ void commander_nodsPowerUp(void)
   if(commander->totalNods > 0)
   {
     PIO_Clear(&NodPower_pin);
-    delayMs(200);
+    delayMs(10);
   }
   else
   {
@@ -227,7 +226,7 @@ void commander_nodsPowerDown(void)
 {
   SANITY_CHECK(commander);
   PIO_Set(&NodPower_pin);
-  delayMs(200);
+  delayMs(10);
   commander->currentNodIdx = 0;
 }
 
@@ -243,43 +242,91 @@ void commander_stop(void)
   commander->timer.enabled = FALSE;
 }
 
-void commander_reply(unsigned char type)
+void commander_replyAuto(unsigned short idx)
 {
-  // TODO:
-  // Fill status packet bits
-  reply.ready = commandVault->status.ready;
+  SANITY_CHECK(comport);
+  int len = 0;
+  reply.type = REPLY_PACKET_TYPE_AUTOREPLY;
   reply.idx = commandVault->lastPacketIdx;
+  reply.ok = commandVault->status.ok;
+  reply.busy = commandVault->status.busy;
   reply.crc = 0;
-  comport_uputchar(reply.unit);
-  comport_uputchar(reply.type);
-  comport_uputchar(reply.idxH);
-  comport_uputchar(reply.idxL);
+  comport->writeBuffer[len++] = reply.unit;
+  comport->writeBuffer[len++] = reply.type;
+  comport->writeBuffer[len++] = reply.idxH;
+  comport->writeBuffer[len++] = reply.idxL;
+  for(int i = REPLY_PACKET_PART_START; i <= REPLY_PACKET_PART_IDX_L; i++)
+  {
+    reply.crc += reply.bytes[i];
+  }
+  for(int i = REPLY_PACKET_PART_STATUS; i <= REPLY_PACKET_PART_SPECIAL; i++)
+  {
+    comport->writeBuffer[len++] = reply.bytes[i];
+    reply.crc += reply.bytes[i];
+  }
+  comport->writeBuffer[len++] = reply.crcH;
+  comport->writeBuffer[len++] = reply.crcL;
+  comport_udmaputs(comport->writeBuffer, len);
+}
+
+void commander_replyStatus(Instruction *ins)
+{
+  SANITY_CHECK(ins);
+  SANITY_CHECK(comport);
+  int len = 0;
+  reply.type = REPLY_PACKET_TYPE_STATUS;
+  reply.idx = ins->idx;
+  reply.ok = commandVault->status.ok;
+  reply.busy = commandVault->status.busy;
+  reply.special = ins->condition;
+  reply.crc = 0;
+  comport->writeBuffer[len++] = reply.unit;
+  comport->writeBuffer[len++] = reply.type;
+  comport->writeBuffer[len++] = reply.idxH;
+  comport->writeBuffer[len++] = reply.idxL;
   for(int i = REPLY_PACKET_PART_START; i < REPLY_PACKET_PART_STATUS; i++)
   {
     reply.crc += reply.bytes[i];
   }
-  for(int i = REPLY_PACKET_PART_STATUS; i < REPLY_PACKET_PART_SPECIAL; i++)
+  for(int i = REPLY_PACKET_PART_STATUS; i < REPLY_PACKET_PART_CRC_H; i++)
   {
-    comport_uputchar(reply.bytes[i]);
+    comport->writeBuffer[len++] = reply.bytes[i];
     reply.crc += reply.bytes[i];
   }
-  switch(type)
+  comport->writeBuffer[len++] = reply.crcH;
+  comport->writeBuffer[len++] = reply.crcL;
+  comport_udmaputs(comport->writeBuffer, len);
+}
+
+void commander_replyMessage(unsigned short idx)
+{
+  SANITY_CHECK(comport);
+  int len = 0;
+  reply.type = REPLY_PACKET_TYPE_STATUS;
+  reply.idx = idx;
+  reply.ok = commandVault->status.ok;
+  reply.busy = commandVault->status.busy;
+  reply.special = commandVault->status.messageLen;
+  reply.crc = 0;
+  comport->writeBuffer[len++] = reply.unit;
+  comport->writeBuffer[len++] = reply.type;
+  comport->writeBuffer[len++] = reply.idxH;
+  comport->writeBuffer[len++] = reply.idxL;
+  for(int i = REPLY_PACKET_PART_START; i < REPLY_PACKET_PART_STATUS; i++)
   {
-    case REPLY_PACKET_TYPE_STATUS:
-      reply.special = 0;
-      comport_uputchar(reply.special);
-    break;
-    case REPLY_PACKET_TYPE_MESSAGE:
-      reply.special = commandVault->status.messageLen;
-      comport_uputchar(reply.special);
-      for(int i = 0; i < commandVault->status.messageLen; i++)
-      {
-        comport_uputchar(commandVault->status.message[i]);
-        reply.crc += commandVault->status.message[i];
-      }
-    break;
+    reply.crc += reply.bytes[i];
   }
-  reply.crc += reply.special;
-  comport_uputchar(reply.crcH);
-  comport_uputchar(reply.crcL);
+  for(int i = REPLY_PACKET_PART_STATUS; i < REPLY_PACKET_PART_CRC_H; i++)
+  {
+    comport->writeBuffer[len++] = reply.bytes[i];
+    reply.crc += reply.bytes[i];
+  }
+  for(int i = 0; i < commandVault->status.messageLen; i++)
+  {
+    comport->writeBuffer[len++] = commandVault->status.message[i];
+    reply.crc += commandVault->status.message[i];
+  }  
+  comport->writeBuffer[len++] = reply.crcH;
+  comport->writeBuffer[len++] = reply.crcL;
+  comport_udmaputs(comport->writeBuffer, len);
 }

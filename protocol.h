@@ -27,11 +27,13 @@
 #define SEGMENT_MAIN 0x00
 #define SEGMENT_AUTO 0x0F
 
-#define INSTRUCTION_MAX_LEN   20
-#define INSTRUCTION_STOP_INIT  0
-#define INSTRUCTION_CALIBRATE  1 
-#define INSTRUCTION_GOTO       2
+#define INSTRUCTION_MAX_LEN 20
+#define INSTRUCTION_STOP_INIT 0x00
+#define INSTRUCTION_CALIBRATE 0x01 
+#define INSTRUCTION_GOTO      0x02
+#define INSTRUCTION_REQUEST   0xFF // Warning! Autoremovable instruction
 
+#define MAX_SIMULTANEOUS_INSTRUCTIONS 10
 
 #define REPLY_PACKET_LEN 8
 
@@ -46,8 +48,18 @@
 #define REPLY_PACKET_PART_CRC_H   6
 #define REPLY_PACKET_PART_CRC_L   7
 
-#define REPLY_PACKET_TYPE_STATUS 0xEF
-#define REPLY_PACKET_TYPE_MESSAGE 0xEE
+#define REPLY_PACKET_TYPE_AUTOREPLY 0xEF
+#define REPLY_PACKET_TYPE_STATUS 0xEE
+#define REPLY_PACKET_TYPE_MESSAGE 0xED
+
+#define UNIT_STATUS_OK (1 << 0)
+
+#define INSTRUCTION_STATUS_UNDEF     0
+#define INSTRUCTION_STATUS_ACCEPTED (1 << 0)
+#define INSTRUCTION_STATUS_WORKING  (1 << 1)
+#define INSTRUCTION_STATUS_DONE     (1 << 2)
+#define INSTRUCTION_STATUS_BREAK    (1 << 4)
+#define INSTRUCTION_STATUS_ERROR    (1 << 5)
 
 #define MESSAGE_MAX_LEN   20
 #define MESSAGE_POSITION 0
@@ -161,7 +173,8 @@ typedef union {
     union {
       unsigned char status;
       struct {
-        unsigned char ready : 1;
+        unsigned char ok : 1;
+        unsigned char busy : 1;
         // TODO:
         // Fill status packet bits
       };

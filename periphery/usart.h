@@ -47,4 +47,6 @@ extern unsigned char USART_IsDataAvailable(AT91S_USART *usart);
 extern void USART_SetIrdaFilter(AT91S_USART *usart,
                                 unsigned char filter);
 
+extern void USART_ClearReadBuffers(AT91S_USART *usart);
+
 #endif //#ifndef USART_H

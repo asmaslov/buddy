@@ -45,6 +45,348 @@ static void manipulator_configureJoints(void)
   manipulator->joints[JOINT_ZR].inverted = TRUE;  
 }
 
+static void processCommands()
+{
+  // Process instruction if any for manipulator movement
+  for(int random = 0; random < commandVault->requests.totalInstructions; random++)
+  {
+    Instruction *currentInstruction = getInstruction(random);
+    switch(currentInstruction->code)
+    {
+      case INSTRUCTION_STOP_INIT:
+        if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
+        {
+          allInPlace = TRUE;
+          for(int i = 0; i < TOTAL_JOINTS; i++)
+          {
+            if(abs(manipulator->joints[i].realSpeed) != 0)
+            {
+              allInPlace = FALSE;
+            }
+          }
+          if(allInPlace)
+          {
+            currentInstruction->condition = INSTRUCTION_STATUS_DONE;
+            if(!manipulator->calibrated)
+            {
+              removeInstructionByIdx(currentInstruction->idx);
+            }
+            TRACE_DEBUG("Manipulator stop\n\r");
+          } 
+        }
+        if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
+        {
+          currentInstruction->condition = INSTRUCTION_STATUS_WORKING;
+          if(!manipulator->globalMotorsTickersEnabled)
+          {
+            manipulator_unfreeze();
+            TRACE_INFO("Manipulator motors enabled\n\r");
+          }
+          for(int i = 0; i < TOTAL_JOINTS; i++)
+          {
+             manipulator->joints[i].reqSpeed = 0;
+          }
+          // TODO: Break all other manipulator instructions
+        }
+      break;
+      case INSTRUCTION_CALIBRATE:
+        if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
+        {
+          allInPlace = TRUE;
+          for(int i = 0; i < TOTAL_JOINTS; i++)
+          {
+            if(!manipulator->joints[i].sensZeroPos)
+            {
+              allInPlace = FALSE;
+              manipulator->joints[i].reqSpeed = SPEED_CALIBRATE_MULTIPLIED;
+            }
+            else
+            {
+              manipulator->joints[i].reqSpeed = 0;
+              manipulator->joints[i].realPos = 0;
+            }
+          }
+          if(allInPlace)
+          {
+            manipulator->calibrated = TRUE;
+            currentInstruction->condition = INSTRUCTION_STATUS_DONE;
+            TRACE_DEBUG("Manipulator calibrated\n\r");
+            Instruction newIns;
+            newIns.condition = INSTRUCTION_STATUS_ACCEPTED;
+            newIns.idx = 0;
+            newIns.code = INSTRUCTION_GOTO;
+            newIns.parameters[0] = JOINT_XYZLZR;
+            newIns.parameters[1] = ZERO_GAP;
+            newIns.parameters[2] = 0;
+            newIns.parameters[3] = ZERO_GAP;
+            newIns.parameters[4] = 0;
+            newIns.parameters[5] = ZERO_GAP;
+            newIns.parameters[6] = 0;
+            newIns.parameters[7] = ZERO_GAP;
+            newIns.parameters[8] = 0;
+            newIns.parameters[9] = SPEED_GAP;
+            newIns.parameters[10] = SPEED_GAP;
+            newIns.parameters[11] = SPEED_GAP;
+            newIns.parameters[12] = SPEED_GAP;
+            addInstruction(&newIns);
+          }
+        }
+        if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
+        {
+          currentInstruction->condition = INSTRUCTION_STATUS_WORKING;
+          manipulator->calibrated = FALSE;
+        }
+      break;
+      case INSTRUCTION_GOTO:
+        if(currentInstruction->condition == INSTRUCTION_STATUS_WORKING)
+        {
+          allInPlace = TRUE;
+          for(int i = 0; i < TOTAL_JOINTS; i++)
+          {
+            if(manipulator->joints[i].reqSpeed != 0)
+            {
+              allInPlace = FALSE;
+            }
+          }
+          if(allInPlace)
+          {
+            currentInstruction->condition = INSTRUCTION_STATUS_DONE;
+            TRACE_DEBUG("Manipulator movement instruction complete\n\r");
+          }
+        }
+        if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
+        {
+          if(!manipulator->calibrated)
+          {
+            currentInstruction->condition = INSTRUCTION_STATUS_ERROR;
+            TRACE_DEBUG("Manipulator not calibrated\n\r");
+          }
+          else
+          {
+            currentInstruction->condition = INSTRUCTION_STATUS_WORKING;
+            switch (currentInstruction->parameters[0])
+            {
+              case JOINT_X:
+                manipulator->joints[JOINT_X].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_X].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_X].topSpeed = currentInstruction->parameters[3];
+              break;
+              case JOINT_Y:
+                manipulator->joints[JOINT_Y].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_Y].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_Y].topSpeed = currentInstruction->parameters[3];
+              break;
+              case JOINT_ZL:
+                manipulator->joints[JOINT_ZL].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_ZL].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_ZL].topSpeed = currentInstruction->parameters[3];
+              break;
+              case JOINT_ZR:
+                manipulator->joints[JOINT_ZR].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_ZR].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_ZR].topSpeed = currentInstruction->parameters[3];
+              break;
+              case JOINT_XY:
+                manipulator->joints[JOINT_X].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_X].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_Y].reqPosL = currentInstruction->parameters[3];
+                manipulator->joints[JOINT_Y].reqPosH = currentInstruction->parameters[4];
+                manipulator->joints[JOINT_X].topSpeed = currentInstruction->parameters[5];
+                manipulator->joints[JOINT_Y].topSpeed = currentInstruction->parameters[6];
+              break;
+              case JOINT_XYZL:
+                manipulator->joints[JOINT_X].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_X].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_Y].reqPosL = currentInstruction->parameters[3];
+                manipulator->joints[JOINT_Y].reqPosH = currentInstruction->parameters[4];
+                manipulator->joints[JOINT_ZL].reqPosL = currentInstruction->parameters[5];
+                manipulator->joints[JOINT_ZL].reqPosH = currentInstruction->parameters[6];
+                manipulator->joints[JOINT_X].topSpeed = currentInstruction->parameters[7];
+                manipulator->joints[JOINT_Y].topSpeed = currentInstruction->parameters[8];
+                manipulator->joints[JOINT_ZL].topSpeed = currentInstruction->parameters[9];
+              break;
+              case JOINT_XYZR:
+                manipulator->joints[JOINT_X].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_X].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_Y].reqPosL = currentInstruction->parameters[3];
+                manipulator->joints[JOINT_Y].reqPosH = currentInstruction->parameters[4];
+                manipulator->joints[JOINT_ZR].reqPosL = currentInstruction->parameters[5];
+                manipulator->joints[JOINT_ZR].reqPosH = currentInstruction->parameters[6];
+                manipulator->joints[JOINT_X].topSpeed = currentInstruction->parameters[7];
+                manipulator->joints[JOINT_Y].topSpeed = currentInstruction->parameters[8];
+                manipulator->joints[JOINT_ZR].topSpeed = currentInstruction->parameters[9];
+              break;
+              case JOINT_XYZLZR:
+                manipulator->joints[JOINT_X].reqPosL = currentInstruction->parameters[1];
+                manipulator->joints[JOINT_X].reqPosH = currentInstruction->parameters[2];
+                manipulator->joints[JOINT_Y].reqPosL = currentInstruction->parameters[3];
+                manipulator->joints[JOINT_Y].reqPosH = currentInstruction->parameters[4];
+                manipulator->joints[JOINT_ZL].reqPosL = currentInstruction->parameters[5];
+                manipulator->joints[JOINT_ZL].reqPosH = currentInstruction->parameters[6];
+                manipulator->joints[JOINT_ZR].reqPosL = currentInstruction->parameters[7];
+                manipulator->joints[JOINT_ZR].reqPosH = currentInstruction->parameters[8];
+                manipulator->joints[JOINT_X].topSpeed = currentInstruction->parameters[9];
+                manipulator->joints[JOINT_Y].topSpeed = currentInstruction->parameters[10];
+                manipulator->joints[JOINT_ZL].topSpeed = currentInstruction->parameters[11];
+                manipulator->joints[JOINT_ZR].topSpeed = currentInstruction->parameters[12];
+              break;
+            }
+          }
+        }
+      break;
+      case INSTRUCTION_REQUEST:
+        if(currentInstruction->condition == INSTRUCTION_STATUS_ACCEPTED)
+        {
+          currentInstruction->condition = INSTRUCTION_STATUS_DONE;
+          Instruction *wantedInstruction = getInstructionByIdx(currentInstruction->parameters[0]);
+          if(wantedInstruction)
+          {
+            commander_replyStatus(wantedInstruction);
+          }
+          else
+          {
+            TRACE_DEBUG("Instruction number %d does not exist\n\r", currentInstruction->parameters[0]);
+          }
+          removeInstructionByIdx(currentInstruction->idx);
+        }
+      break;
+    }
+    if((currentInstruction->idx == 0) && (currentInstruction->condition == INSTRUCTION_STATUS_DONE))
+    {
+      removeInstructionByIdx(currentInstruction->idx);
+    }
+  }
+}
+
+static void regulateSpeeds(void)
+{
+  for(int i = 0; i < TOTAL_JOINTS; i++)
+  {
+    if(manipulator->joints[i].topSpeed != 0)
+    {
+      manipulator->joints[i].limitTopSpeed = TRUE;
+    }
+    else
+    {
+      manipulator->joints[i].limitTopSpeed = FALSE;                      
+    }
+    // TODO:
+    // Uncommend after #define JOINT_i_MAX
+    /*if(manipulator->joints[i].reqPos > manipulator->joints[i].maxPos)
+    {
+      manipulator->joints[i].reqPos = manipulator->joints[i].maxPos;
+    }*/
+    // Dead zone sense and speed reference
+    if(manipulator->joints[i].reqPos < manipulator->joints[i].realPos - HALF_DEAD_ZONE)
+    {
+      if((manipulator->joints[i].limitTopSpeed) && (abs(manipulator->joints[i].reqSpeed) > manipulator->joints[i].topSpeed))
+      {
+        manipulator->joints[i].reqSpeed = -(manipulator->joints[i].topSpeed * manipulator->globalSpeedMultiplier);
+      }
+      else
+      {
+        manipulator->joints[i].reqSpeed = -(SPEED_MAX * manipulator->globalSpeedMultiplier);
+      }
+    }
+    else if(manipulator->joints[i].reqPos > manipulator->joints[i].realPos + HALF_DEAD_ZONE)
+    {
+      if(manipulator->joints[i].limitTopSpeed && (abs(manipulator->joints[i].reqSpeed) > manipulator->joints[i].topSpeed))
+      {
+        manipulator->joints[i].reqSpeed = manipulator->joints[i].topSpeed * manipulator->globalSpeedMultiplier;
+      }
+      else
+      {
+        manipulator->joints[i].reqSpeed = (SPEED_MAX * manipulator->globalSpeedMultiplier);
+      }
+    }
+    else
+    {
+      manipulator->joints[i].reqSpeed = 0;
+    }
+  #ifndef IGNORE_ACCELERATION_LIMITS
+    // If not near the end then limit acceleration
+    if(abs(manipulator->joints[i].realSpeed) < (abs(manipulator->joints[i].reqPos - manipulator->joints[i].realPos) * manipulator->joints[i].maxAccel / (ACCELERATION * DECELERATION_DIVIDER)))
+    {
+      if((abs(manipulator->joints[i].reqSpeed) > abs(manipulator->joints[i].realSpeed)) &&
+         (abs(manipulator->joints[i].reqSpeed - manipulator->joints[i].realSpeed) > manipulator->joints[i].maxAccel))
+      {
+        manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * (abs(manipulator->joints[i].realSpeed) + manipulator->joints[i].maxAccel);
+      }
+    }
+    // If near the end then begin deceleration
+    else
+    {
+      manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * (abs(manipulator->joints[i].reqPos - manipulator->joints[i].realPos) * manipulator->joints[i].maxAccel / (ACCELERATION * DECELERATION_DIVIDER));
+    }
+  #endif // IGNORE_ACCELERATION_LIMITS
+  }       
+}
+
+static void setTickersAndDirections()
+{
+  for(int i = 0; i < TOTAL_JOINTS; i++)
+  {
+    if(!manipulator->joints[i].inverted)
+    {
+      manipulator->joints[i].direction = (manipulator->joints[i].reqSpeed < 0) ? BACK : FORWARD;
+    }
+    else
+    {
+      manipulator->joints[i].direction = (manipulator->joints[i].reqSpeed < 0) ? FORWARD : BACK;
+    }
+    if(manipulator->joints[i].reqSpeed == 0)
+    {
+      manipulator->joints[i].timer.enabled = FALSE;
+    }
+    else
+    {
+      double jointFreqHz = abs(manipulator->joints[i].reqSpeed) * STEP_DIVIDER;
+      while((0xFFFFFFFE / (jointFreqHz * manipulator->joints[i].timer.divide)) < CLOCK_FREQ_HZ)
+      {
+        manipulator->joints[i].timer.divide++;    
+      }
+      manipulator->joints[i].timer.compare = (unsigned int)(CLOCK_FREQ_HZ / (jointFreqHz * manipulator->joints[i].timer.divide));
+      manipulator->joints[i].timer.enabled = TRUE;
+    }
+  }
+  commandVault_lock();
+  if(manipulator->joints[JOINT_X].direction == FORWARD)
+  {
+    // TODO:
+    // outputs.endirXX must be calculated (XX) according to joint number
+    commandVault->outputs.endir12 &=~(1 << 1);
+  }
+  else
+  {
+    commandVault->outputs.endir12 |= (1 << 1);
+  }
+  if(manipulator->joints[JOINT_Y].direction == FORWARD)
+  {
+    commandVault->outputs.endir12 &=~(1 << 3);
+  }
+  else
+  {
+    commandVault->outputs.endir12 |= (1 << 3);
+  }
+  if(manipulator->joints[JOINT_ZL].direction == FORWARD)
+  {
+    commandVault->outputs.endir34 &=~(1 << 1);
+  }
+  else
+  {
+    commandVault->outputs.endir34 |= (1 << 1);
+  }
+  if(manipulator->joints[JOINT_ZR].direction == FORWARD)
+  {
+    commandVault->outputs.endir34 &=~(1 << 3);
+  }
+  else
+  {
+    commandVault->outputs.endir34 |= (1 << 3);
+  }
+  commandVault_unlock(); 
+}
+
 static void manipulator_handler(void)
 {
   SANITY_CHECK(manipulator);
@@ -59,27 +401,29 @@ static void manipulator_handler(void)
     if(++commander->timer.tick >= commander->timer.compare)
     {
       commander->timer.tick = 0;
-      // Commander timer interrupt
       if(++commander->timer.mastertick >= commander->timer.divide)
       {
         commander->timer.mastertick = 0;
+        // Commander timer interrupt
+        commander->timer.enabled = FALSE;
         commanderTicker();
+        if(!commandVault_locked()) 
+        {
+         commandVault_lock();
+         manipulator->joints[JOINT_X].sensZeroPos = ((commandVault->status.stat12 & (1 << 7)) == 0) ? TRUE : FALSE;
+         manipulator->joints[JOINT_Y].sensZeroPos = ((commandVault->status.stat12 & (1 << 6)) == 0) ? TRUE : FALSE;
+         manipulator->joints[JOINT_ZL].sensZeroPos = ((commandVault->status.stat34 & (1 << 6)) == 0) ? TRUE : FALSE;
+         manipulator->joints[JOINT_ZR].sensZeroPos = ((commandVault->status.stat34 & (1 << 7)) == 0) ? TRUE : FALSE;
+         commandVault->status.ok = allJointsConnected;
+         commandVault_unlock();
+        }
+        allJointsConnected = TRUE;
+        for(int i = 0; i < commander->totalNods; i++)
+        {
+          allJointsConnected &= commander->nods[i].connected;
+        }
+        commander->timer.enabled = TRUE;
       }
-     if(!commandVault_locked()) 
-     {
-       commandVault_lock();
-       manipulator->joints[JOINT_X].sensZeroPos = ((commandVault->status.stat12 & (1 << 7)) == 0) ? TRUE : FALSE;
-       manipulator->joints[JOINT_Y].sensZeroPos = ((commandVault->status.stat12 & (1 << 6)) == 0) ? TRUE : FALSE;
-       manipulator->joints[JOINT_ZL].sensZeroPos = ((commandVault->status.stat34 & (1 << 6)) == 0) ? TRUE : FALSE;
-       manipulator->joints[JOINT_ZR].sensZeroPos = ((commandVault->status.stat34 & (1 << 7)) == 0) ? TRUE : FALSE;
-       commandVault->status.ready = allJointsConnected;
-       commandVault_unlock();
-     }
-    }
-    allJointsConnected = TRUE;
-    for(int i = 0; i < commander->totalNods; i++)
-    {
-      allJointsConnected &= commander->nods[i].connected;
     }
     if(manipulator->globalMotorsTickersEnabled && allJointsConnected)
     {
@@ -90,10 +434,11 @@ static void manipulator_handler(void)
           if(++manipulator->joints[i].timer.tick >= manipulator->joints[i].timer.compare)
           {
             manipulator->joints[i].timer.tick = 0;
-            // Motor timer interrupt
             if(++manipulator->joints[i].timer.mastertick >= manipulator->joints[i].timer.divide)
             {
               manipulator->joints[i].timer.mastertick = 0;
+              // Motor timer interrupt
+              manipulator->joints[i].timer.enabled = FALSE;
               PIO_Invert(&Clocks_pins[i]);
               if(manipulator->joints[i].direction == FORWARD)
               {
@@ -117,6 +462,7 @@ static void manipulator_handler(void)
                   manipulator->joints[i].realPos++;
                 }
               }
+              manipulator->joints[i].timer.enabled = TRUE;
             }
           }
         }
@@ -132,48 +478,35 @@ static void manipulator_handler(void)
       {
         parser.timer.mastertick = 0;
         // Parser timer interrupt
+        parser.timer.enabled = FALSE;
         if(comport->parser)
         {
           comport->parser(comport->readBuffer, USART_BUFFER_SIZE);
         }
-        if(commandVault->requests.stopAll)
-        {
-          if(!manipulator->globalMotorsTickersEnabled)
-          {
-            manipulator_unfreeze();
-            TRACE_INFO("Manipulator motors enabled\n\r");
-          }
-          for(int i = 0; i < TOTAL_JOINTS; i++)
-          {
-             manipulator->joints[i].reqSpeed = 0;
-          }
-          manipulator->control = CONTROL_SPEED;
-          commandVault->status.instructionDone = TRUE;
-          TRACE_DEBUG("Manipulator stop\n\r");
-          commandVault->requests.stopAll = FALSE;
-        }
-        else if(commandVault->requests.newIns)
-        {  
-          manipulator->control = CONTROL_POS;
-          commandVault->requests.newIns = FALSE;
-        }
+        comport_uread();
         if(commandVault->leftFeedbacks > 0)
         {
-          commander_reply(REPLY_PACKET_TYPE_STATUS);
+          if(!manipulator->globalMathEnabled)
+          {
+            manipulator->globalMathEnabled = TRUE;
+          }
+          commander_replyAuto(commandVault->lastPacketIdx);
           commandVault->leftFeedbacks--;
         }
+        parser.timer.enabled = TRUE;
       }
     }
   }
-  if(mathTimer.enabled)
+  if(mathTimer.enabled && manipulator->globalMathEnabled)
   {
     if(++mathTimer.tick >= mathTimer.compare)
     {
       mathTimer.tick = 0;
-      // Math timer interrupt
       if(++mathTimer.mastertick >= mathTimer.divide)
       {
         mathTimer.mastertick = 0;
+        // Math timer interrupt
+        mathTimer.enabled = FALSE;
         for(int i = 0; i < TOTAL_JOINTS; i++)
         {
           manipulator->joints[i].realSpeed = (manipulator->joints[i].realPos - manipulator->joints[i].oldPos) * MATH_FREQ_HZ / STEP_DIVIDER;
@@ -187,291 +520,13 @@ static void manipulator_handler(void)
             manipulator->joints[i].moving = FALSE;
           }
         }
-        switch (manipulator->control)
+        processCommands();
+        if(manipulator->calibrated)
         {
-          case CONTROL_SPEED:
-            manipulator->joints[JOINT_X].reqSpeed = commandVault->values.speedX * manipulator->globalSpeedMultiplier;
-            manipulator->joints[JOINT_Y].reqSpeed = commandVault->values.speedY * manipulator->globalSpeedMultiplier;
-            manipulator->joints[JOINT_ZL].reqSpeed = commandVault->values.speedZL * manipulator->globalSpeedMultiplier;          
-            manipulator->joints[JOINT_ZR].reqSpeed = commandVault->values.speedZR * manipulator->globalSpeedMultiplier;
-            for(int i = 0; i < TOTAL_JOINTS; i++)
-            {
-              if(abs(manipulator->joints[i].reqSpeed) > manipulator->joints[i].maxSpeed)
-              {
-                manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * manipulator->joints[i].maxSpeed;
-              }              
-            }
-          break;
-          case CONTROL_POS:
-            switch (commandVault->requests.instruction)
-            {
-              case INSTRUCTION_CALIBRATE:
-                manipulator->calibrated = FALSE;
-                for(int i = 0; i < TOTAL_JOINTS; i++)
-                {
-                  if(!manipulator->joints[i].sensZeroPos)
-                  {
-                    manipulator->joints[i].reqSpeed = SPEED_CALIBRATE_MULTIPLIED;
-                  }
-                  else
-                  {
-                    manipulator->joints[i].reqSpeed = 0;
-                    manipulator->joints[i].realPos = 0;
-                  }
-                }
-                allInPlace = TRUE;
-                for(int i = 0; i < TOTAL_JOINTS; i++)
-                {
-                  allInPlace &= manipulator->joints[i].sensZeroPos;
-                }
-                if(allInPlace)
-                {
-                  manipulator->control = CONTROL_SPEED;
-                  manipulator->calibrated = TRUE;
-                  TRACE_DEBUG("Manipulator calibrated\n\r");
-                  // TODO:
-                  // Emulate command to move to (ZERO_GAP, ZERO_GAP, [ZERO_GAP, ZERO_GAP])
-                  commandVault->requests.instruction = INSTRUCTION_GOTO;
-                  commandVault->requests.parameters[0] = JOINT_XYZLZR;
-                  commandVault->requests.parameters[1] = ZERO_GAP;
-                  commandVault->requests.parameters[2] = 0;
-                  commandVault->requests.parameters[3] = ZERO_GAP;
-                  commandVault->requests.parameters[4] = 0;
-                  commandVault->requests.parameters[5] = ZERO_GAP;
-                  commandVault->requests.parameters[6] = 0;
-                  commandVault->requests.parameters[7] = ZERO_GAP;
-                  commandVault->requests.parameters[8] = 0;
-                  commandVault->requests.parameters[9] = SPEED_TEST;
-                  commandVault->requests.parameters[10] = SPEED_TEST;
-                  commandVault->requests.parameters[11] = SPEED_TEST;
-                  commandVault->requests.parameters[12] = SPEED_TEST;
-                  commandVault->requests.newIns = TRUE;
-                }
-              break;
-              case INSTRUCTION_GOTO:
-                if(!manipulator->calibrated)
-                {
-                  TRACE_DEBUG("Manipulator not calibrated\n\r");
-                  manipulator->control = CONTROL_SPEED;
-                }
-                else
-                {
-                  switch (commandVault->requests.parameters[0])
-                  {
-                    case JOINT_X:
-                      manipulator->joints[JOINT_X].reqPosL = commandVault->requests.parameters[1];
-                      manipulator->joints[JOINT_X].reqPosH = commandVault->requests.parameters[2];
-                      manipulator->joints[JOINT_X].topSpeed = commandVault->requests.parameters[3];
-                    break;
-                    case JOINT_Y:
-                      manipulator->joints[JOINT_Y].reqPosL = commandVault->requests.parameters[1];
-                      manipulator->joints[JOINT_Y].reqPosH = commandVault->requests.parameters[2];
-                      manipulator->joints[JOINT_Y].topSpeed = commandVault->requests.parameters[3];
-                    break;
-                    case JOINT_ZL:
-                      manipulator->joints[JOINT_ZL].reqPosL = commandVault->requests.parameters[1];
-                      manipulator->joints[JOINT_ZL].reqPosH = commandVault->requests.parameters[2];
-                      manipulator->joints[JOINT_ZL].topSpeed = commandVault->requests.parameters[3];
-                    break;
-                    case JOINT_ZR:
-                      manipulator->joints[JOINT_ZR].reqPosL = commandVault->requests.parameters[1];
-                      manipulator->joints[JOINT_ZR].reqPosH = commandVault->requests.parameters[2];
-                      manipulator->joints[JOINT_ZR].topSpeed = commandVault->requests.parameters[3];
-                    break;
-                    case JOINT_XY:
-                      manipulator->joints[JOINT_X].reqPosL = commandVault->requests.parameters[1];
-                      manipulator->joints[JOINT_X].reqPosH = commandVault->requests.parameters[2];
-                      manipulator->joints[JOINT_Y].reqPosL = commandVault->requests.parameters[3];
-                      manipulator->joints[JOINT_Y].reqPosH = commandVault->requests.parameters[4];
-                      manipulator->joints[JOINT_X].topSpeed = commandVault->requests.parameters[5];
-                      manipulator->joints[JOINT_Y].topSpeed = commandVault->requests.parameters[6];
-                    break;
-                    case JOINT_XYZL:
-                      manipulator->joints[JOINT_X].reqPosL = commandVault->requests.parameters[1];
-                      manipulator->joints[JOINT_X].reqPosH = commandVault->requests.parameters[2];
-                      manipulator->joints[JOINT_Y].reqPosL = commandVault->requests.parameters[3];
-                      manipulator->joints[JOINT_Y].reqPosH = commandVault->requests.parameters[4];
-                      manipulator->joints[JOINT_ZL].reqPosL = commandVault->requests.parameters[5];
-                      manipulator->joints[JOINT_ZL].reqPosH = commandVault->requests.parameters[6];
-                      manipulator->joints[JOINT_X].topSpeed = commandVault->requests.parameters[7];
-                      manipulator->joints[JOINT_Y].topSpeed = commandVault->requests.parameters[8];
-                      manipulator->joints[JOINT_ZL].topSpeed = commandVault->requests.parameters[9];
-                    break;
-                    case JOINT_XYZR:
-                      manipulator->joints[JOINT_X].reqPosL = commandVault->requests.parameters[1];
-                      manipulator->joints[JOINT_X].reqPosH = commandVault->requests.parameters[2];
-                      manipulator->joints[JOINT_Y].reqPosL = commandVault->requests.parameters[3];
-                      manipulator->joints[JOINT_Y].reqPosH = commandVault->requests.parameters[4];
-                      manipulator->joints[JOINT_ZR].reqPosL = commandVault->requests.parameters[5];
-                      manipulator->joints[JOINT_ZR].reqPosH = commandVault->requests.parameters[6];
-                      manipulator->joints[JOINT_X].topSpeed = commandVault->requests.parameters[7];
-                      manipulator->joints[JOINT_Y].topSpeed = commandVault->requests.parameters[8];
-                      manipulator->joints[JOINT_ZR].topSpeed = commandVault->requests.parameters[9];
-                    break;
-                    case JOINT_XYZLZR:
-                      manipulator->joints[JOINT_X].reqPosL = commandVault->requests.parameters[1];
-                      manipulator->joints[JOINT_X].reqPosH = commandVault->requests.parameters[2];
-                      manipulator->joints[JOINT_Y].reqPosL = commandVault->requests.parameters[3];
-                      manipulator->joints[JOINT_Y].reqPosH = commandVault->requests.parameters[4];
-                      manipulator->joints[JOINT_ZL].reqPosL = commandVault->requests.parameters[5];
-                      manipulator->joints[JOINT_ZL].reqPosH = commandVault->requests.parameters[6];
-                      manipulator->joints[JOINT_ZR].reqPosL = commandVault->requests.parameters[7];
-                      manipulator->joints[JOINT_ZR].reqPosH = commandVault->requests.parameters[8];
-                      manipulator->joints[JOINT_X].topSpeed = commandVault->requests.parameters[9];
-                      manipulator->joints[JOINT_Y].topSpeed = commandVault->requests.parameters[10];
-                      manipulator->joints[JOINT_ZL].topSpeed = commandVault->requests.parameters[11];
-                      manipulator->joints[JOINT_ZR].topSpeed = commandVault->requests.parameters[12];
-                    break;
-                  }
-                }
-                for(int i = 0; i < TOTAL_JOINTS; i++)
-                {                               
-                  if(manipulator->joints[i].topSpeed != 0)
-                  {
-                    manipulator->joints[i].limitTopSpeed = TRUE;
-                  }
-                  else
-                  {
-                    manipulator->joints[i].limitTopSpeed = FALSE;                      
-                  }
-                  // TODO:
-                  // Uncommend after #define JOINT_i_MAX
-                  /*if(manipulator->joints[i].reqPos > manipulator->joints[i].maxPos)
-                  {
-                    manipulator->joints[i].reqPos = manipulator->joints[i].maxPos;
-                  }*/
-                  // Dead zone sense and speed reference
-                  if(manipulator->joints[i].reqPos < manipulator->joints[i].realPos - HALF_DEAD_ZONE)
-                  {
-                    if(manipulator->joints[i].limitTopSpeed)
-                    {
-                      manipulator->joints[i].reqSpeed = -(manipulator->joints[i].topSpeed * manipulator->globalSpeedMultiplier);
-                    }
-                    else
-                    {
-                      manipulator->joints[i].reqSpeed = -(SPEED_MAX * manipulator->globalSpeedMultiplier);
-                    }
-                  }
-                  else if(manipulator->joints[i].reqPos > manipulator->joints[i].realPos + HALF_DEAD_ZONE)
-                  {
-                    if(manipulator->joints[i].limitTopSpeed)
-                    {
-                      manipulator->joints[i].reqSpeed = manipulator->joints[i].topSpeed * manipulator->globalSpeedMultiplier;
-                    }
-                    else
-                    {
-                      manipulator->joints[i].reqSpeed = (SPEED_MAX * manipulator->globalSpeedMultiplier);
-                    }
-                  }
-                  else
-                  {
-                    manipulator->joints[i].reqSpeed = 0;
-                  }
-                #ifndef IGNORE_ACCELERATION_LIMITS
-                  // If not near the end then limit acceleration
-                  if(abs(manipulator->joints[i].realSpeed) < (abs(manipulator->joints[i].reqPos - manipulator->joints[i].realPos) * manipulator->joints[i].maxAccel / (ACCELERATION * DECELERATION_DIVIDER)))
-                  {
-                    if((abs(manipulator->joints[i].reqSpeed) > abs(manipulator->joints[i].realSpeed)) &&
-                       (abs(manipulator->joints[i].reqSpeed - manipulator->joints[i].realSpeed) > manipulator->joints[i].maxAccel))
-                    {
-                      manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * (abs(manipulator->joints[i].realSpeed) + manipulator->joints[i].maxAccel);
-                    }
-                  }
-                  // If near the end then begin deceleration
-                  else
-                  {
-                    manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * (abs(manipulator->joints[i].reqPos - manipulator->joints[i].realPos) * manipulator->joints[i].maxAccel / (ACCELERATION * DECELERATION_DIVIDER));
-                  }
-                #endif // IGNORE_ACCELERATION_LIMITS
-                }
-                allInPlace = TRUE;
-                for(int i = 0; i < TOTAL_JOINTS; i++)
-                {
-                  if(abs(manipulator->joints[i].realPos - manipulator->joints[i].reqPos) < HALF_DEAD_ZONE)
-                  {
-                    manipulator->joints[i].reqSpeed = 0;
-                  }
-                  else
-                  {
-                    allInPlace = FALSE;
-                  }
-                }
-                if(allInPlace)
-                {
-                  manipulator->control = CONTROL_SPEED;
-                  commandVault->status.instructionDone = TRUE;
-                  TRACE_DEBUG("Manipulator instruction complete\n\r");
-                }                
-              break;
-              default:
-                for(int i = 0; i < TOTAL_JOINTS; i++)
-                {
-                  manipulator->joints[i].reqSpeed = 0;
-                }
-            }
-          break;
+          regulateSpeeds();
         }
-        for(int i = 0; i < TOTAL_JOINTS; i++)
-        {
-          if(!manipulator->joints[i].inverted)
-          {
-            manipulator->joints[i].direction = (manipulator->joints[i].reqSpeed < 0) ? BACK : FORWARD;
-          }
-          else
-          {
-            manipulator->joints[i].direction = (manipulator->joints[i].reqSpeed < 0) ? FORWARD : BACK;
-          }
-          if(manipulator->joints[i].reqSpeed == 0)
-          {
-            manipulator->joints[i].timer.enabled = FALSE;
-          }
-          else
-          {
-            double jointFreqHz = abs(manipulator->joints[i].reqSpeed) * STEP_DIVIDER;
-            while((0xFFFFFFFE / (jointFreqHz * manipulator->joints[i].timer.divide)) < CLOCK_FREQ_HZ)
-            {
-              manipulator->joints[i].timer.divide++;    
-            }
-            manipulator->joints[i].timer.compare = (unsigned int)(CLOCK_FREQ_HZ / (jointFreqHz * manipulator->joints[i].timer.divide));
-            manipulator->joints[i].timer.enabled = TRUE;
-          }
-        }
-        commandVault_lock();
-        if(manipulator->joints[JOINT_X].direction == FORWARD)
-        {
-          // TODO:
-          // outputs.endirXX must be calculated (XX) according to joint number
-          commandVault->outputs.endir12 &=~(1 << 1);
-        }
-        else
-        {
-          commandVault->outputs.endir12 |= (1 << 1);
-        }
-        if(manipulator->joints[JOINT_Y].direction == FORWARD)
-        {
-          commandVault->outputs.endir12 &=~(1 << 3);
-        }
-        else
-        {
-          commandVault->outputs.endir12 |= (1 << 3);
-        }
-        if(manipulator->joints[JOINT_ZL].direction == FORWARD)
-        {
-          commandVault->outputs.endir34 &=~(1 << 1);
-        }
-        else
-        {
-          commandVault->outputs.endir34 |= (1 << 1);
-        }
-        if(manipulator->joints[JOINT_ZR].direction == FORWARD)
-        {
-          commandVault->outputs.endir34 &=~(1 << 3);
-        }
-        else
-        {
-          commandVault->outputs.endir34 |= (1 << 3);
-        }
-        commandVault_unlock(); 
+        setTickersAndDirections();
+        mathTimer.enabled = TRUE;
       }
     }
   }
@@ -512,7 +567,6 @@ void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv, Comport *c
   parser_enable(&parser, commandVault);
   comport_setParserFunc(parser_work);  
   manipulator->globalSpeedMultiplier = 0;
-  manipulator->control = CONTROL_SPEED;
   manipulator->calibrated = FALSE;
   manipulator->realx = 0;
   manipulator->realy = 0;
@@ -520,6 +574,7 @@ void manipulator_init(Manipulator *m, Commander *c, CommandVault *cv, Comport *c
   manipulator->realzl = 0;
   manipulator->busy = FALSE;
   manipulator->globalMotorsTickersEnabled = FALSE;
+  manipulator->globalMathEnabled = FALSE;
   mathTimer.enabled = FALSE;
   mathTimer.tick = 0;
   mathTimer.compare = 0;
@@ -579,6 +634,16 @@ void manipulator_configure(CommanderTicker ct)
   manipulator_configureJoints();
 }
 
+void manipulator_startMathLogic(void)
+{
+  mathTimer.enabled = TRUE;
+}
+
+void manipulator_stopMathLogic(void)
+{
+  mathTimer.enabled = FALSE;
+}
+
 void manipulator_startParser(void)
 {
   parser.timer.enabled = TRUE;
@@ -598,7 +663,6 @@ void manipulator_unfreeze(void)
   commandVault->outputs.endir34 |= (1 << 2);
   commandVault_unlock();
   manipulator->globalMotorsTickersEnabled = TRUE;
-  mathTimer.enabled = TRUE;
 }
 
 void manipulator_freeze(void)
@@ -610,5 +674,5 @@ void manipulator_freeze(void)
   commandVault->outputs.endir34 &=~(1 << 2);
   commandVault_unlock();  
   manipulator->globalMotorsTickersEnabled = FALSE;
-  mathTimer.enabled = FALSE;
+  manipulator->globalMathEnabled = FALSE;
 }

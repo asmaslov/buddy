@@ -12,6 +12,6 @@ typedef struct _Parser {
 
 void parser_enable(Parser *p, CommandVault *cv);
 
-void parser_work(unsigned char *buf, int size);
+void parser_work(char *buf, int size);
 
 #endif //#ifndef PARSER_H

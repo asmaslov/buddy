@@ -22,7 +22,7 @@
 #define PINS_USART1 PIN_USART1_RXD, PIN_USART1_TXD, PIN_USART1_SCK, PIN_USART1_RTS, PIN_USART1_CTS
 #define PINS_USART1_RXTX PIN_USART1_RXD, PIN_USART1_TXD
 
-#define USART_BUFFER_SIZE 20 // Maximun command length
+#define USART_BUFFER_SIZE 50 // Maximun command length
 #define USART_TIMEOUT 0
 
 static const Pin USART0_pins[] = {
@@ -33,11 +33,12 @@ static const Pin USART1_pins[] = {
   PINS_USART1,
 };
 
-typedef void (*ParserFunc)(unsigned char *buf, int size);
+typedef void (*ParserFunc)(char *buf, int size);
 
 typedef struct _Comport {
   unsigned char port;
-  unsigned char readBuffer[USART_BUFFER_SIZE];
+  char readBuffer[USART_BUFFER_SIZE];
+  char writeBuffer[USART_BUFFER_SIZE];
   ParserFunc parser;
 } Comport;
 
@@ -52,10 +53,16 @@ void comport_setParserFunc(ParserFunc pfunc);
 
 void comport_uputchar(char c);
 
+void comport_uputs(char *str, int size);
+
 void comport_uprintf(char *str, ...);
+
+void comport_udmaputs(char *str, int size);
 
 void comport_udmaprintf(char *str, ...);
 
 unsigned char comport_ugetchar(void);
+
+void comport_uread(void);
 
 #endif //#ifndef USARTD_H
