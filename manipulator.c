@@ -47,18 +47,6 @@ static void manipulator_configureJoints(void)
 
 static void processCommands()
 {
-  // Set initial values based on manual override
-  manipulator->joints[JOINT_X].reqSpeed = commandVault->values.speedX * manipulator->globalSpeedMultiplier;
-  manipulator->joints[JOINT_Y].reqSpeed = commandVault->values.speedY * manipulator->globalSpeedMultiplier;
-  manipulator->joints[JOINT_ZL].reqSpeed = commandVault->values.speedZL * manipulator->globalSpeedMultiplier;          
-  manipulator->joints[JOINT_ZR].reqSpeed = commandVault->values.speedZR * manipulator->globalSpeedMultiplier;
-  for(int i = 0; i < TOTAL_JOINTS; i++)
-  {
-    if(abs(manipulator->joints[i].reqSpeed) > manipulator->joints[i].maxSpeed)
-    {
-      manipulator->joints[i].reqSpeed = sign(manipulator->joints[i].reqSpeed) * manipulator->joints[i].maxSpeed;
-    }
-  }
   // Process instruction if any for manipulator movement
   for(int random = 0; random < commandVault->requests.totalInstructions; random++)
   {
