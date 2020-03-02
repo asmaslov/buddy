@@ -1,4 +1,3 @@
-syntax: glob
-.git
+.hg
 output/*
 settings/*
